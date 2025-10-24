@@ -11,7 +11,7 @@ Deliver a modular state store that supports the 27-card interaction loop and unl
 ## Deliverables
 1. Gherkin feature files covering card placement, candle increments, and reset behaviors.
 2. Minimal Node runner (or script) to execute scenarios manually.
-3. `scripts/state/store.js` implementation satisfying the specs.
+3. `scripts/state/store.mjs` implementation satisfying the specs.
 4. Updated `main.js`/`index.html` bootstrap aligned with the store contract.
 5. Refactored drag/drop logic in `scripts/interactions/cards.js` validated via scenarios + manual Chrome/Safari smoke test.
 
@@ -23,7 +23,7 @@ Deliver a modular state store that supports the 27-card interaction loop and unl
    - Add `scripts/dev/run-features.js` to parse and execute scenarios; wire simple step definitions.
    - Document usage in `README.md` dev section.
 3. **Implement Store**
-   - Create `scripts/state/store.js` with immutable state snapshot + subscription API.
+   - Create `scripts/state/store.mjs` with immutable state snapshot + subscription API.
    - Add actions: `initializeDeck`, `dragCard`, `placeCard`, `resetSession`.
 4. **Wire Bootstrap**
    - Convert `index.html` script tag to `type="module"`; ensure `main.js` exports init.
@@ -45,6 +45,6 @@ Deliver a modular state store that supports the 27-card interaction loop and unl
 ## Current Progress (Paused)
 - ✅ Gherkin feature created (`features/card-progress.feature`).
 - ✅ BDD runner scaffolded (`scripts/dev/run-features.mjs`, currently awaiting ESM import fix).
-- ✅ State store implemented (`scripts/state/store.js`) and wired into `main.js`.
+- ✅ State store implemented (`scripts/state/store.mjs`) and wired into `main.js`.
 - ✅ Card interactions module drafted (`scripts/interactions/cards.js`).
 - ⏳ Pending: finalize module strategy (rename modules to .mjs or add `"type": "module"`), commit the remaining bootstrap changes, and resume QA tasks from the plan.

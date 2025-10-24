@@ -22,6 +22,6 @@
 - **D3 QA Edge Cases**: Any stage can hard reset without corrupting state; rapid drag/drop stays error-free.
 
 ## Next Steps · BDD Sprint Kickoff
-- **State Store Scenarios**: Capture Gherkin cases for card placement, candle increments, and resets; implement `scripts/state/store.js` to satisfy them.
+- **State Store Scenarios**: Capture Gherkin cases for card placement, candle increments, and resets; implement `scripts/state/store.mjs` to satisfy them.
 - **Module Bootstrap Scenario**: Define Given/When/Then for loading `main.js` as an ES module; update `index.html` accordingly and verify canvas boot.
 - **Card Interaction Scenario**: Write BDD steps for top-card drag, snap, and candle triggers; refactor logic into `scripts/interactions/cards.js` and ensure scenarios pass in Chrome/Safari.

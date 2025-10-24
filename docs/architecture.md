@@ -7,7 +7,7 @@ The experience runs as a single-page canvas app bootstrapped by `index.html`. Re
 - `index.html`: minimal DOM shell with data-hook attributes, loads `main.js` as an ES module.
 - `style.css`: entry file that `@import`s `styles/base.css`, `styles/layout.css`, and `styles/components.css` to isolate tokens from component rules.
 - `main.js`: top-level controller that initializes shared services, mounts UI panels, and starts the render loop.
-- `scripts/state/store.js`: single source of truth for card positions, candle progress, wish text, export status, and async permission flags. Exposes action helpers and subscribable selectors.
+- `scripts/state/store.mjs`: single source of truth for card positions, candle progress, wish text, export status, and async permission flags. Exposes action helpers and subscribable selectors.
 - `scripts/canvas/scene.js`: sets up the canvas, handles resize at 16:9, and renders cards, candles, and FX via `tick()` updates.
 - `scripts/interactions/cards.js`: manages drag-and-snap rules, enforces top-card dragging, updates store, and signals candle increments.
 - `scripts/interactions/candles.js`: drives candle ignition/extinguish states, including microphone sampling and fallback actions.
@@ -26,6 +26,6 @@ The experience runs as a single-page canvas app bootstrapped by `index.html`. Re
 5. Export and data modules ensure assets stay in sync with the 27-card dataset and roadmap deliverables.
 
 ## Next Implementation Steps
-1. Implement `scripts/state/store.js` and migrate card/candle state to prove the pattern.
+1. Implement `scripts/state/store.mjs` and migrate card/candle state to prove the pattern.
 2. Update `index.html` to load `main.js` as an ES module and adjust bundling if needed.
 3. Refactor drag/drop into `scripts/interactions/cards.js` and regression test candle progression in Chrome/Safari.

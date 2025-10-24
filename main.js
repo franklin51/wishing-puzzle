@@ -3,7 +3,7 @@
 // - Top-of-stack drag for mini cards with snap-to-grid
 // - Candle progress rendering and state machine hooks
 
-import { createStore } from './scripts/state/store.js';
+import { createStore } from './scripts/state/store.mjs';
 import { initCardInteractions } from './scripts/interactions/cards.js';
 
 const canvas = document.getElementById('scene');
