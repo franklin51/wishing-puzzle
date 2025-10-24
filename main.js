@@ -3,6 +3,8 @@
 // - Top-of-stack drag for mini cards with snap-to-grid
 // - Candle progress rendering and state machine hooks
 
+import { createStore } from './scripts/state/store.js';
+
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
 const exportCanvas = document.getElementById('exportCanvas');
@@ -25,7 +27,10 @@ const STATE = { INTRO: 'intro', ARRANGE: 'arrange', WISHES: 'wishes', BLOW: 'blo
 let state = STATE.INTRO;
 
 const GRID = 12; // snap grid in px
-const TOTAL_CARDS = 27;
+const DEFAULT_TOTAL_CARDS = 27;
+const store = createStore({ totalCards: DEFAULT_TOTAL_CARDS });
+store.initializeDeck(DEFAULT_TOTAL_CARDS);
+const TOTAL_CARDS = store.getState().totalCards;
 
 // Positions are computed relative to scene rects
 let scene = {
@@ -50,13 +55,15 @@ let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
     z: i + 1, // stack order
 }));
 
-let candlesLit = 0;
 let dragging = null; // {card, dx, dy}
 
 function setProgress() {
-    progressText.textContent = `Candles: ${candlesLit} / ${TOTAL_CARDS}`;
-    btnNext.disabled = !(candlesLit === TOTAL_CARDS && state === STATE.ARRANGE);
+    const { candlesLit, totalCards } = store.getState();
+    progressText.textContent = `Candles: ${candlesLit} / ${totalCards}`;
+    btnNext.disabled = !(candlesLit === totalCards && state === STATE.ARRANGE);
 }
+
+store.subscribe(setProgress);
 
 function snap(n) { return Math.round(n / GRID) * GRID; }
 
@@ -121,6 +128,7 @@ function drawScene() {
 }
 
 function drawCake() {
+    const { candlesLit } = store.getState();
     const { x, y, w, h } = scene.right;
     // cake base
     const baseY = y + h - 140;
@@ -132,7 +140,6 @@ function drawCake() {
     const cols = 9, rows = 3; // 9x3 = 27
     const gapX = (w - 160) / (cols - 1);
     const gapY = 26;
-    let lit = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cx = x + 80 + c * gapX;
@@ -187,6 +194,9 @@ canvas.addEventListener('pointerdown', (e) => {
     // only the top unplaced card is draggable
     const topUnplaced = cards.filter(c => !c.placed).sort((a, b) => b.z - a.z)[0];
     if (topUnplaced && rectContains({ x: topUnplaced.x, y: topUnplaced.y, w: topUnplaced.w, h: topUnplaced.h }, p.x, p.y)) {
+        const storeIndex = topUnplaced.id - 1;
+        const dragResult = store.dragCard(storeIndex);
+        if (!dragResult.allowed) return;
         dragging = { card: topUnplaced, dx: p.x - topUnplaced.x, dy: p.y - topUnplaced.y };
     } else {
         // allow dragging already-placed cards for repositioning
@@ -214,11 +224,13 @@ canvas.addEventListener('pointerup', () => {
     c.y = snap(c.y);
 
     if (!c.placed) {
-        c.placed = true;
-        candlesLit = Math.min(TOTAL_CARDS, candlesLit + 1);
-        setProgress();
-        if (candlesLit === TOTAL_CARDS) {
-            btnNext.disabled = false;
+        const storeIndex = c.id - 1;
+        const placeResult = store.placeCard(storeIndex);
+        if (!placeResult.placed) {
+            console.warn('Failed to place card', placeResult.reason);
+        } else {
+            c.placed = true;
+            setProgress();
         }
     }
     // bring to top
@@ -239,7 +251,9 @@ btnStart.addEventListener('click', () => {
 });
 
 btnNext.addEventListener('click', () => {
-    if (state === STATE.ARRANGE && candlesLit === TOTAL_CARDS) {
+    if (state !== STATE.ARRANGE) return;
+    const { candlesLit, totalCards } = store.getState();
+    if (candlesLit === totalCards) {
         state = STATE.WISHES;
         wishesPanel.classList.remove('hidden');
     }
@@ -277,7 +291,7 @@ btnCapture.addEventListener('click', async () => {
 
 function resetAll() {
     state = STATE.INTRO;
-    candlesLit = 0;
+    store.resetSession();
     cards.forEach((c, i) => {
         c.placed = false;
         c.x = scene.stack.x + 8 + i * 0.8;
@@ -322,12 +336,17 @@ async function exportImage() {
     link.click();
 }
 
-// ---- Init ----
-layout();
-setProgress();
-drawScene();
-
-window.addEventListener('resize', () => {
+function handleResize() {
     // Canvas intrinsic size stays; CSS scales. Only re-render.
     drawScene();
-});
+}
+
+// ---- Init ----
+export function init() {
+    layout();
+    setProgress();
+    drawScene();
+    window.addEventListener('resize', handleResize);
+}
+
+init();
