@@ -1,0 +1,71 @@
+## index.html
+```html
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wishing Puzzle — Birthday Card</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="app">
+        <header class="topbar">
+            <h1>Wishing Puzzle</h1>
+            <div class="progress" aria-live="polite">
+                <span id="progressText">Candles: 0 / 27</span>
+            </div>
+        </header>
+
+        <main class="stage">
+            <!-- Canvas layer -->
+            <canvas id="scene" width="1280" height="720" aria-label="Interactive birthday card"></canvas>
+        </main>
+
+        <footer class="bottombar">
+            <button id="btnStart" class="btn primary">開始</button>
+            <button id="btnNext" class="btn" disabled>下一步</button>
+            <button id="btnReset" class="btn subtle">重置</button>
+        </footer>
+
+        <!-- Wishes panel (overlays on stage when active) -->
+        <section id="wishesPanel" class="overlay hidden" role="dialog" aria-modal="true">
+            <div class="panel">
+                <h2>許下三個願望</h2>
+                <label>給妳自己
+                    <input id="wish1" type="text" maxlength="60" placeholder="例如：身體健康、開心每一天" />
+                </label>
+                <label>給我們
+                    <input id="wish2" type="text" maxlength="60" placeholder="例如：一起旅行某個地方" />
+                </label>
+                <label>給未來
+                    <input id="wish3" type="text" maxlength="60" placeholder="例如：一直在彼此身邊" />
+                </label>
+                <div class="actions">
+                    <button id="btnWishesOk" class="btn primary">完成願望</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Capture panel (camera preview + capture) -->
+        <section id="capturePanel" class="overlay hidden" role="dialog" aria-modal="true">
+            <div class="panel">
+                <h2>吹蠟燭 & 拍下這一刻</h2>
+                <video id="video" autoplay playsinline></video>
+                <div class="actions">
+                    <button id="btnCapture" class="btn primary">拍照</button>
+                    <button id="btnCloseCapture" class="btn">關閉</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hidden canvas for export composition -->
+        <canvas id="exportCanvas" class="hidden" width="2480" height="3508"></canvas>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,9 @@
+# Node / tooling（如果後面你加 Vite 或 npm）
+node_modules/
+dist/
+.DS_Store
+.env
+# OS / editor
+Thumbs.db
+.idea/
+.vscode/
