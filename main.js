@@ -289,12 +289,14 @@ function drawCard(card, inStack = false) {
 
     // text
     ctx.fillStyle = '#3f352c';
-    ctx.font = '600 18px "Playfair Display", "Times New Roman", serif';
-    ctx.textBaseline = 'top';
-    ctx.shadowColor = 'rgba(255,255,255,0.8)';
-    ctx.shadowBlur = 6;
-    ctx.fillText(card.text, x + 16, y + 24);
+    ctx.font = '400 24px "Dancing Script", "PingFang TC", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(255,255,255,0.85)';
+    ctx.shadowBlur = 5;
+    ctx.fillText(card.text, x + card.w / 2, y + card.h / 2);
     ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
 }
 
 // interactions wired below
