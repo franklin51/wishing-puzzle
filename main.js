@@ -132,11 +132,13 @@ function layout() {
     const cakeGap = 72;
     const rightMargin = 56;
     const rightX = scene.left.x + scene.left.w + cakeGap;
+    const stackBaseline = scene.stack.y + scene.stack.h;
+    const cakeHeight = 220;
     scene.right = {
         x: rightX,
-        y: scene.hero.y + 96,
+        y: Math.max(scene.hero.y + 48, stackBaseline - cakeHeight),
         w: scene.hero.x + scene.hero.w - rightX - rightMargin,
-        h: scene.hero.h - 180,
+        h: cakeHeight,
     };
     cards.forEach((card, index) => {
         if (!card.placed) positionCardAtStack(card, index);
@@ -226,43 +228,101 @@ function drawScene() {
 function drawCake() {
     const { candlesLit } = store.getState();
     const { x, y, w, h } = scene.right;
-    // cake base
-    const baseY = y + h - 140;
-    drawRoundedRect(x + 40, baseY - 80, w - 80, 80, 16);
-    ctx.fillStyle = '#f3d2b6'; ctx.fill();
-    ctx.fillStyle = '#e9b490'; ctx.fillRect(x + 40, baseY, w - 80, 60);
+    const plateHeight = 18;
+    const plateTop = y + h - plateHeight;
+    const plateRadiusX = w * 0.55;
+    const plateRadiusY = plateHeight * 1.2;
+    const centerX = x + w / 2;
 
-    // candles grid (27)
-    const cols = 9, rows = 3; // 9x3 = 27
-    const gapX = (w - 160) / (cols - 1);
-    const gapY = 26;
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const cx = x + 80 + c * gapX;
-            const cy = baseY - 100 - r * gapY;
-            // stick
-            ctx.fillStyle = '#c6b6a1';
-            ctx.fillRect(cx - 3, cy, 6, 34);
-            // flame
-            const id = r * cols + c + 1;
-            const isLit = id <= candlesLit;
-            if (isLit) {
-                ctx.save();
-                ctx.shadowColor = 'rgba(255,150,60,.6)';
-                ctx.shadowBlur = 12;
-                ctx.fillStyle = '#ffb347';
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, 6, 10, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            } else {
-                ctx.fillStyle = '#bdb7af';
-                ctx.beginPath();
-                ctx.arc(cx, cy + 4, 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
+    // plate
+    ctx.save();
+    const plateGradient = ctx.createLinearGradient(centerX - plateRadiusX, plateTop, centerX + plateRadiusX, plateTop);
+    plateGradient.addColorStop(0, 'rgba(255,239,226,0.9)');
+    plateGradient.addColorStop(1, 'rgba(245,224,204,0.9)');
+    ctx.fillStyle = plateGradient;
+    ctx.beginPath();
+    ctx.ellipse(centerX, plateTop + plateHeight / 2, plateRadiusX, plateRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // cake body dimensions
+    const frostingHeight = 26;
+    const bodyHeight = h - plateHeight - frostingHeight;
+    const bodyWidth = w * 0.6;
+    const bodyX = centerX - bodyWidth / 2;
+    const bodyY = plateTop - bodyHeight;
+    const topEllipseRadiusX = bodyWidth / 2;
+    const topEllipseRadiusY = topEllipseRadiusX * 0.35;
+    const topCenterY = bodyY + frostingHeight * 0.6;
+
+    // cake body
+    ctx.save();
+    const bodyGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX, plateTop);
+    bodyGradient.addColorStop(0, '#fbe0cf');
+    bodyGradient.addColorStop(1, '#f6c7a9');
+    ctx.fillStyle = bodyGradient;
+    drawRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 22);
+    ctx.fill();
+    ctx.restore();
+
+    // frosting rim
+    ctx.save();
+    ctx.fillStyle = '#fdf1e8';
+    ctx.beginPath();
+    ctx.ellipse(centerX, topCenterY, topEllipseRadiusX, topEllipseRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // frosting shadow
+    ctx.save();
+    ctx.strokeStyle = 'rgba(240,200,170,0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(centerX, topCenterY + topEllipseRadiusY * 0.35, topEllipseRadiusX * 0.95, topEllipseRadiusY * 0.8, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // candles around oval top
+    const candleCount = TOTAL_CARDS;
+    const candleRadiusX = topEllipseRadiusX * 0.9;
+    const candleRadiusY = topEllipseRadiusY * 0.75;
+    const stemHeight = 38;
+    for (let i = 0; i < candleCount; i += 1) {
+        const angle = Math.PI - (Math.PI * (i + 0.5)) / candleCount;
+        const cx = centerX + Math.cos(angle) * candleRadiusX;
+        const cy = topCenterY + Math.sin(angle) * candleRadiusY;
+        const stemWidth = 4;
+        ctx.fillStyle = '#c3b19c';
+        ctx.fillRect(cx - stemWidth / 2, cy - stemHeight, stemWidth, stemHeight);
+
+        const isLit = i + 1 <= candlesLit;
+        ctx.save();
+        if (isLit) {
+            ctx.shadowColor = 'rgba(255,160,80,.65)';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#ffb860';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - stemHeight, 5, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = '#cfc4b8';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - stemHeight + 2, 4, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
         }
+        ctx.restore();
     }
+
+    // subtle highlight on cake front
+    ctx.save();
+    const highlightGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX + bodyWidth, bodyY);
+    highlightGradient.addColorStop(0, 'rgba(255,255,255,0.25)');
+    highlightGradient.addColorStop(0.5, 'rgba(255,255,255,0)');
+    highlightGradient.addColorStop(1, 'rgba(255,255,255,0.2)');
+    ctx.fillStyle = highlightGradient;
+    drawRoundedRect(bodyX + 8, bodyY + 12, bodyWidth - 16, bodyHeight - 24, 18);
+    ctx.fill();
+    ctx.restore();
 }
 
 function drawCard(card, inStack = false) {
