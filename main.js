@@ -52,15 +52,15 @@ let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
     placed: false,
     x: scene.stack.x + 8 + i * 0.8, // slight offset to show stack
     y: scene.stack.y + 8 + i * 0.5,
-    w: 220,
-    h: 64,
+    w: 190,
+    h: 48,
     z: i + 1, // stack order
 }));
 cards.forEach((card, index) => positionCardAtStack(card, index));
 
 function positionCardAtStack(card, index) {
-    card.x = scene.stack.x + 12 + index * 0.8;
-    card.y = scene.stack.y + 8 + index * 0.5;
+    card.x = scene.stack.x + 12 + index * 0.6;
+    card.y = scene.stack.y + 6 + index * 0.4;
 }
 
 const heroImage = new Image();
