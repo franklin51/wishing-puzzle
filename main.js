@@ -130,8 +130,6 @@ function drawScene() {
     const unplaced = cards.filter(c => !c.placed).sort((a, b) => a.z - b.z);
     for (const card of unplaced) drawCard(card, true);
 
-    // dragging card on top
-    if (dragging) drawCard(dragging.card);
 }
 
 function drawCake() {
