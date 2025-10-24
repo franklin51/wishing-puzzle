@@ -4,6 +4,7 @@
 // - Candle progress rendering and state machine hooks
 
 import { createStore } from './scripts/state/store.js';
+import { initCardInteractions } from './scripts/interactions/cards.js';
 
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
@@ -44,7 +45,7 @@ let scene = {
 // Cards dataset — uniform styling with slight bg variations
 const bgVariants = ['#fffdf8', '#fff8f1', '#fffaf4', '#fff6ed'];
 let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
-    id: i + 1,
+    id: i,
     text: `Card ${i + 1}`, // TODO: replace with real copy
     bg: bgVariants[i % bgVariants.length],
     placed: false,
@@ -55,7 +56,19 @@ let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
     z: i + 1, // stack order
 }));
 
-let dragging = null; // {card, dx, dy}
+function handleStoreUpdate() {
+    syncCardsFromStore();
+    setProgress();
+    drawScene();
+}
+
+function syncCardsFromStore() {
+    const stateSnapshot = store.getState();
+    stateSnapshot.cards.forEach((entry, index) => {
+        if (!cards[index]) return;
+        cards[index].placed = entry.status === 'placed';
+    });
+}
 
 function setProgress() {
     const { candlesLit, totalCards } = store.getState();
@@ -63,13 +76,7 @@ function setProgress() {
     btnNext.disabled = !(candlesLit === totalCards && state === STATE.ARRANGE);
 }
 
-store.subscribe(setProgress);
-
-function snap(n) { return Math.round(n / GRID) * GRID; }
-
-function rectContains(r, x, y) {
-    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-}
+store.subscribe(handleStoreUpdate);
 
 function layout() {
     // Keep base 16:9 internal resolution; canvas CSS scales responsively
@@ -186,64 +193,7 @@ function drawCard(card, inStack = false) {
     ctx.fillText(card.text, x + 12, y + 36);
 }
 
-// ---- Input / Drag ----
-canvas.addEventListener('pointerdown', (e) => {
-    const p = getPointer(e);
-    if (state === STATE.INTRO) return;
-
-    // only the top unplaced card is draggable
-    const topUnplaced = cards.filter(c => !c.placed).sort((a, b) => b.z - a.z)[0];
-    if (topUnplaced && rectContains({ x: topUnplaced.x, y: topUnplaced.y, w: topUnplaced.w, h: topUnplaced.h }, p.x, p.y)) {
-        const storeIndex = topUnplaced.id - 1;
-        const dragResult = store.dragCard(storeIndex);
-        if (!dragResult.allowed) return;
-        dragging = { card: topUnplaced, dx: p.x - topUnplaced.x, dy: p.y - topUnplaced.y };
-    } else {
-        // allow dragging already-placed cards for repositioning
-        const placedTop = cards.filter(c => c.placed && rectContains({ x: c.x, y: c.y, w: c.w, h: c.h }, p.x, p.y)).sort((a, b) => b.z - a.z)[0];
-        if (placedTop) {
-            dragging = { card: placedTop, dx: p.x - placedTop.x, dy: p.y - placedTop.y };
-        }
-    }
-});
-
-canvas.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const p = getPointer(e);
-    const c = dragging.card;
-    c.x = p.x - dragging.dx;
-    c.y = p.y - dragging.dy;
-    drawScene();
-});
-
-canvas.addEventListener('pointerup', () => {
-    if (!dragging) return;
-    const c = dragging.card;
-    // snap and mark placed if it was from stack region
-    c.x = snap(c.x);
-    c.y = snap(c.y);
-
-    if (!c.placed) {
-        const storeIndex = c.id - 1;
-        const placeResult = store.placeCard(storeIndex);
-        if (!placeResult.placed) {
-            console.warn('Failed to place card', placeResult.reason);
-        } else {
-            c.placed = true;
-            setProgress();
-        }
-    }
-    // bring to top
-    const maxZ = Math.max(...cards.map(k => k.z));
-    c.z = maxZ + 1;
-    dragging = null;
-    drawScene();
-});
-
-function getPointer(e) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
-}
+// interactions wired below
 
 // ---- Flow buttons ----
 btnStart.addEventListener('click', () => {
@@ -293,11 +243,11 @@ function resetAll() {
     state = STATE.INTRO;
     store.resetSession();
     cards.forEach((c, i) => {
-        c.placed = false;
         c.x = scene.stack.x + 8 + i * 0.8;
         c.y = scene.stack.y + 8 + i * 0.5;
         c.z = i + 1;
     });
+    syncCardsFromStore();
     btnStart.disabled = false;
     btnNext.disabled = true;
     setProgress();
@@ -344,8 +294,20 @@ function handleResize() {
 // ---- Init ----
 export function init() {
     layout();
+    syncCardsFromStore();
     setProgress();
     drawScene();
+    initCardInteractions({
+        canvas,
+        store,
+        cards,
+        gridSize: GRID,
+        canInteract: () => state !== STATE.INTRO,
+        onCardPlaced: () => {
+            // store subscriber handles progress/text updates
+        },
+        drawScene,
+    });
     window.addEventListener('resize', handleResize);
 }
 

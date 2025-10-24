@@ -1,6 +1,6 @@
-const DEFAULT_TOTAL_CARDS = 27;
+export const DEFAULT_TOTAL_CARDS = 27;
 
-function createStore(options = {}) {
+export function createStore(options = {}) {
   const initialTotal = Number.isFinite(options.totalCards) ? options.totalCards : DEFAULT_TOTAL_CARDS;
   let state = freezeState({
     totalCards: Math.max(1, initialTotal),
@@ -209,8 +209,3 @@ function isStateEqual(previous, next) {
   }
   return true;
 }
-
-module.exports = {
-  createStore,
-  DEFAULT_TOTAL_CARDS,
-};

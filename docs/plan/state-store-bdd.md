@@ -41,3 +41,10 @@ Deliver a modular state store that supports the 27-card interaction loop and unl
 - Gherkin scenarios green via CLI.
 - Manual drag/drop + candle progression verified in Chrome and Safari with no console errors.
 - Documentation updated (`docs/architecture.md`, `README.md`) to reflect store module usage.
+
+## Current Progress (Paused)
+- ✅ Gherkin feature created (`features/card-progress.feature`).
+- ✅ BDD runner scaffolded (`scripts/dev/run-features.mjs`, currently awaiting ESM import fix).
+- ✅ State store implemented (`scripts/state/store.js`) and wired into `main.js`.
+- ✅ Card interactions module drafted (`scripts/interactions/cards.js`).
+- ⏳ Pending: finalize module strategy (rename modules to .mjs or add `"type": "module"`), commit the remaining bootstrap changes, and resume QA tasks from the plan.
