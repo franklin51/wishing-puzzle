@@ -74,6 +74,19 @@ heroImage.onerror = (err) => {
     console.warn('Failed to load hero background image', err);
 };
 
+const cardTexture = new Image();
+let cardTextureLoaded = false;
+let cardTexturePattern = null;
+cardTexture.src = 'images/card-paper.png';
+cardTexture.onload = () => {
+    cardTextureLoaded = true;
+    cardTexturePattern = ctx.createPattern(cardTexture, 'repeat');
+    drawScene();
+};
+cardTexture.onerror = (err) => {
+    console.warn('Failed to load card texture image', err);
+};
+
 function handleStoreUpdate() {
     syncCardsFromStore();
     setProgress();
@@ -190,8 +203,15 @@ function drawScene() {
     drawCake();
 
     // stack shadow area
-    drawRoundedRect(scene.stack.x, scene.stack.y, scene.stack.w, scene.stack.h, 12);
-    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
+    // stack shadow hint (subtle shadow only, no fill)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    drawRoundedRect(scene.stack.x, scene.stack.y + 4, scene.stack.w, scene.stack.h - 12, 12);
+    ctx.fill();
+    ctx.restore();
 
     // placed cards first
     const placed = cards.filter(c => c.placed).sort((a, b) => a.z - b.z);
@@ -248,18 +268,33 @@ function drawCake() {
 function drawCard(card, inStack = false) {
     const x = inStack ? card.x : card.x;
     const y = inStack ? card.y : card.y;
-    drawRoundedRect(x, y, card.w, card.h, 10);
-    ctx.fillStyle = card.bg; ctx.fill();
-    ctx.strokeStyle = '#d9d1c8'; ctx.lineWidth = 1.5; ctx.stroke();
+    const radius = 12;
+    ctx.save();
+    drawRoundedRect(x, y, card.w, card.h, radius);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillRect(x, y, card.w, card.h);
+    if (cardTextureLoaded && cardTexturePattern) {
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = cardTexturePattern;
+        ctx.fillRect(x, y, card.w, card.h);
+        ctx.globalAlpha = 1;
+    }
+    ctx.restore();
 
-    // subtle header strip
-    ctx.fillStyle = 'rgba(0,0,0,0.04)';
-    ctx.fillRect(x, y, card.w, 18);
+    ctx.strokeStyle = 'rgba(104,92,80,0.45)';
+    ctx.lineWidth = 1.2;
+    drawRoundedRect(x, y, card.w, card.h, radius);
+    ctx.stroke();
 
     // text
-    ctx.fillStyle = '#444';
-    ctx.font = '15px system-ui';
-    ctx.fillText(card.text, x + 12, y + 36);
+    ctx.fillStyle = '#3f352c';
+    ctx.font = '600 18px "Playfair Display", "Times New Roman", serif';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(card.text, x + 16, y + 24);
+    ctx.shadowBlur = 0;
 }
 
 // interactions wired below
