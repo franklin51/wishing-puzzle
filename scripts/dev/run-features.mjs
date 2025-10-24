@@ -112,6 +112,25 @@ const stepDefinitions = [
     },
   },
   {
+    pattern: /^And the user drags the next top card onto the board$/,
+    handler: (ctx) => {
+      const nextTop = ctx.world.store.getTopUnplacedCard();
+      if (!nextTop) {
+        return fail('No unplaced cards remain');
+      }
+      const dragResult = ctx.world.store.dragCard(nextTop.id);
+      if (!dragResult.allowed) {
+        return fail(`Drag was rejected: ${dragResult.reason}`);
+      }
+      const placeResult = ctx.world.store.placeCard(nextTop.id);
+      if (!placeResult.placed) {
+        return fail(`Placement failed: ${placeResult.reason || 'unknown reason'}`);
+      }
+      ctx.world.lastPlacedId = nextTop.id;
+      return pass();
+    },
+  },
+  {
     pattern: /^Then that card is marked as placed$/,
     handler: (ctx) => {
       const { lastPlacedId } = ctx.world;
@@ -127,14 +146,14 @@ const stepDefinitions = [
     },
   },
   {
-    pattern: /^And exactly one candle lights up$/,
+    pattern: /^(?:And|Then) exactly one candle lights up$/,
     handler: (ctx) => {
       const { candlesLit } = ctx.world.store.getState();
       return candlesLit === 1 ? pass() : fail(`Expected 1 candle lit, found ${candlesLit}`);
     },
   },
   {
-    pattern: /^And the HUD displays "(\d+)\/(\d+)"$/,
+    pattern: /^(?:And|Then) the HUD displays "(\d+)\/(\d+)"$/,
     handler: (ctx, [lit, total]) => {
       const expected = `${lit}/${total}`;
       const actual = ctx.world.store.getProgressText();
@@ -176,7 +195,7 @@ const stepDefinitions = [
     },
   },
   {
-    pattern: /^And the candle count stays at (\d+)$/,
+    pattern: /^(?:And|Then) the candle count stays at (\d+)$/,
     handler: (ctx, [expected]) => {
       const candles = ctx.world.store.getState().candlesLit;
       const expectedNumber = Number(expected);

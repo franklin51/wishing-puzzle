@@ -11,6 +11,12 @@ Feature: Card progress and candle milestones
     And exactly one candle lights up
     And the HUD displays "1/27"
 
+  Scenario: Next card becomes draggable after placement
+    When the user drags the top unplaced card onto the board
+    And the user drags the next top card onto the board
+    Then the HUD displays "2/27"
+    And the candle count stays at 2
+
   Scenario: Only the top card can be dragged when others remain
     Given a second card remains in the stack
     When the user attempts to drag the second card

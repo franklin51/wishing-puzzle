@@ -127,7 +127,9 @@ export function createStore(options = {}) {
   }
 
   function getTopUnplacedCard() {
-    return state.cards.find((card) => card.status === 'unplaced');
+    const unplaced = state.cards.filter((card) => card.status === 'unplaced');
+    if (!unplaced.length) return null;
+    return unplaced.reduce((top, card) => (card.id > top.id ? card : top), unplaced[0]);
   }
 
   function getProgressText() {
