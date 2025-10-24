@@ -15,7 +15,7 @@ Feature: Card progress and candle milestones
     Given a second card remains in the stack
     When the user attempts to drag the second card
     Then the drag action is rejected
-    And the candle count stays at 1
+    And the candle count stays at 0
 
   Scenario: Resetting clears placement and candles
     Given one card is already placed
