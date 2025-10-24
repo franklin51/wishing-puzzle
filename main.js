@@ -186,27 +186,12 @@ function drawScene() {
 
     drawHeroBackdrop();
 
-    // left panel — photo placeholder
-    drawRoundedRect(scene.left.x, scene.left.y, scene.left.w, scene.left.h, 16);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 2; ctx.stroke();
-    ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#b8b0a7';
-    ctx.fillRect(scene.left.x + 20, scene.left.y + 20, scene.left.w - 40, scene.left.h - 40);
-    ctx.restore();
-    ctx.fillStyle = '#6d6259';
-    ctx.font = '18px system-ui';
-    ctx.fillText('合照（半透明背景）', scene.left.x + 28, scene.left.y + 48);
-
     // right panel — cake + candles
     drawCake();
 
     // stack shadow area
     drawRoundedRect(scene.stack.x, scene.stack.y, scene.stack.w, scene.stack.h, 12);
-    ctx.fillStyle = '#efe6da'; ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
 
     // placed cards first
     const placed = cards.filter(c => c.placed).sort((a, b) => a.z - b.z);
