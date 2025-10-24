@@ -37,9 +37,10 @@ const TOTAL_CARDS = store.getState().totalCards;
 let scene = {
     w: canvas.width,
     h: canvas.height,
-    left: { x: 40, y: 40, w: 720, h: 640 },
-    right: { x: 800, y: 40, w: 440, h: 640 },
-    stack: { x: 40, y: 600, w: 720, h: 80 },
+    hero: { x: 24, y: 24, w: 1232, h: 672 },
+    left: { x: 72, y: 72, w: 680, h: 592 },
+    right: { x: 800, y: 120, w: 360, h: 520 },
+    stack: { x: 72, y: 656, w: 680, h: 72 },
 };
 
 // Cards dataset — uniform styling with slight bg variations
@@ -55,6 +56,23 @@ let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
     h: 64,
     z: i + 1, // stack order
 }));
+cards.forEach((card, index) => positionCardAtStack(card, index));
+
+function positionCardAtStack(card, index) {
+    card.x = scene.stack.x + 12 + index * 0.8;
+    card.y = scene.stack.y + 8 + index * 0.5;
+}
+
+const heroImage = new Image();
+let heroImageLoaded = false;
+heroImage.src = 'images/hero-jenny.png';
+heroImage.onload = () => {
+    heroImageLoaded = true;
+    drawScene();
+};
+heroImage.onerror = (err) => {
+    console.warn('Failed to load hero background image', err);
+};
 
 function handleStoreUpdate() {
     syncCardsFromStore();
@@ -82,9 +100,34 @@ function layout() {
     // Keep base 16:9 internal resolution; canvas CSS scales responsively
     canvas.width = 1280; canvas.height = 720;
     scene.w = canvas.width; scene.h = canvas.height;
-    scene.left = { x: 40, y: 40, w: 720, h: 640 };
-    scene.right = { x: 800, y: 40, w: 440, h: 640 };
-    scene.stack = { x: 40, y: 600, w: 720, h: 80 };
+    const margin = 24;
+    const heroPadding = 48;
+    const stackHeight = 72;
+    scene.hero = { x: margin, y: margin, w: scene.w - margin * 2, h: scene.h - margin * 2 };
+    scene.left = {
+        x: scene.hero.x + heroPadding,
+        y: scene.hero.y + heroPadding,
+        w: 680,
+        h: scene.hero.h - heroPadding * 2 - (stackHeight - 24),
+    };
+    scene.stack = {
+        x: scene.left.x,
+        y: scene.hero.y + scene.hero.h - stackHeight - heroPadding / 2,
+        w: scene.left.w,
+        h: stackHeight,
+    };
+    const cakeGap = 72;
+    const rightMargin = 56;
+    const rightX = scene.left.x + scene.left.w + cakeGap;
+    scene.right = {
+        x: rightX,
+        y: scene.hero.y + 96,
+        w: scene.hero.x + scene.hero.w - rightX - rightMargin,
+        h: scene.hero.h - 180,
+    };
+    cards.forEach((card, index) => {
+        if (!card.placed) positionCardAtStack(card, index);
+    });
 }
 
 function drawRoundedRect(x, y, w, h, r) {
@@ -97,21 +140,64 @@ function drawRoundedRect(x, y, w, h, r) {
     ctx.closePath();
 }
 
+function drawHeroBackdrop() {
+    const hero = scene.hero;
+    if (!hero) return;
+
+    ctx.save();
+    drawRoundedRect(hero.x, hero.y, hero.w, hero.h, 28);
+    ctx.clip();
+    const gradient = ctx.createLinearGradient(hero.x, hero.y, hero.x + hero.w, hero.y);
+    gradient.addColorStop(0, 'rgba(255,248,242,0.96)');
+    gradient.addColorStop(0.55, 'rgba(248,234,219,0.98)');
+    gradient.addColorStop(1, 'rgba(249,239,226,0.98)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(hero.x, hero.y, hero.w, hero.h);
+
+    if (heroImageLoaded) {
+        const padding = 36;
+        const availableHeight = hero.h - padding * 2;
+        const availableWidth = hero.w * 0.55;
+        let drawWidth = availableHeight * (heroImage.width / heroImage.height);
+        let drawHeight = availableHeight;
+        if (drawWidth > availableWidth) {
+            drawWidth = availableWidth;
+            drawHeight = drawWidth * (heroImage.height / heroImage.width);
+        }
+        const imgX = hero.x + padding;
+        const imgY = hero.y + hero.h - padding - drawHeight;
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(heroImage, imgX, imgY, drawWidth, drawHeight);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 2;
+    drawRoundedRect(hero.x, hero.y, hero.w, hero.h, 28);
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f5ede3';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawHeroBackdrop();
 
     // left panel — photo placeholder
     drawRoundedRect(scene.left.x, scene.left.y, scene.left.w, scene.left.h, 16);
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fill();
-    ctx.strokeStyle = '#e0d8cd';
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.lineWidth = 2; ctx.stroke();
     ctx.save();
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = '#b0a79d';
-    ctx.fillRect(scene.left.x + 24, scene.left.y + 24, scene.left.w - 48, scene.left.h - 48);
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#b8b0a7';
+    ctx.fillRect(scene.left.x + 20, scene.left.y + 20, scene.left.w - 40, scene.left.h - 40);
     ctx.restore();
-    ctx.fillStyle = '#7a756d';
+    ctx.fillStyle = '#6d6259';
     ctx.font = '18px system-ui';
     ctx.fillText('合照（半透明背景）', scene.left.x + 28, scene.left.y + 48);
 
@@ -241,8 +327,7 @@ function resetAll() {
     state = STATE.INTRO;
     store.resetSession();
     cards.forEach((c, i) => {
-        c.x = scene.stack.x + 8 + i * 0.8;
-        c.y = scene.stack.y + 8 + i * 0.5;
+        positionCardAtStack(c, i);
         c.z = i + 1;
     });
     syncCardsFromStore();
@@ -286,6 +371,7 @@ async function exportImage() {
 
 function handleResize() {
     // Canvas intrinsic size stays; CSS scales. Only re-render.
+    layout();
     drawScene();
 }
 
