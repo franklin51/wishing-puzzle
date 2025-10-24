@@ -5,6 +5,10 @@
 - **A2 Card Stack Drag & Snap**: Only the top unplaced card can be dragged; placed cards can reorder; drop snaps to grid and lights one candle.
 - **A3 Candle Progress + HUD**: One candle lights per card placed; 27/27 unlocks the next phase; HUD mirrors progress count.
 - **A4 Motion Polish**: Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps.
+- **A5 Scene Background Composite**: Stretch the scene so the cake sits within the hero background; blend `Jenny.png` (temporary asset) into the left panel and adjust canvas widths.
+- **A6 Card Transparency & Styling**: Apply semi-transparent fills/frames so stacked cards reveal the hero art while staying readable.
+- **A7 2.5D Cake & Candle Layout**: Redesign cake with an oval top, slimmer 27-candle grid, and updated flame animation matching the new perspective.
+- **A8 Card Content Dataset**: Shrink card dimensions and source copy from `card.js` via a JSON feed to keep data/state aligned.
 
 ## Epic B · Wishes, Blowout, Capture
 - **B1 Wish Panel**: Three-column input with sticker slot; submit writes text and sticker to the active card.
@@ -22,6 +26,6 @@
 - **D3 QA Edge Cases**: Any stage can hard reset without corrupting state; rapid drag/drop stays error-free.
 
 ## Next Steps · BDD Sprint Kickoff
-- **State Store Scenarios**: Capture Gherkin cases for card placement, candle increments, and resets; implement `scripts/state/store.mjs` to satisfy them.
-- **Module Bootstrap Scenario**: Define Given/When/Then for loading `main.js` as an ES module; update `index.html` accordingly and verify canvas boot.
-- **Card Interaction Scenario**: Write BDD steps for top-card drag, snap, and candle triggers; refactor logic into `scripts/interactions/cards.js` and ensure scenarios pass in Chrome/Safari.
+- **State Store Scenarios** (Done): Gherkin coverage in `features/card-progress.feature`; store implemented in `scripts/state/store.mjs`.
+- **Module Bootstrap Scenario** (Done): `index.html` + `main.js` load as ES modules with store wiring verified.
+- **Card Interaction Scenario** (Done): Drag controller lives in `scripts/interactions/cards.js`, passing BDD + manual Chrome/Safari checks.
