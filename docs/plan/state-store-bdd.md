@@ -48,3 +48,14 @@ Deliver a modular state store that supports the 27-card interaction loop and unl
 - ✅ State store implemented (`scripts/state/store.mjs`) and wired into `main.js`.
 - ✅ Card interactions module drafted (`scripts/interactions/cards.js`).
 - ⏳ Pending: finalize module strategy (rename modules to .mjs or add `"type": "module"`), commit the remaining bootstrap changes, and resume QA tasks from the plan.
+
+
+## Test Notes (WIP)
+- [ ] Chrome desktop drag/drop smoke
+  - Launch `python3 -m http.server 4173` from repo root.
+  - Open `https://localhost:4173/` via a cert-trusting proxy or `http://localhost:4173/` if camera not required.
+  - Drag top card repeatedly; confirm single-candle increments and HUD text matches BDD counter.
+- [ ] Safari desktop drag/drop smoke
+  - Same flow as Chrome; confirm pointer events map correctly and no console warnings appear.
+- [ ] HUD/candle sync observed
+  - Compare on-screen HUD to runner output (`node scripts/dev/run-features.mjs` showing 20/20 passes).
