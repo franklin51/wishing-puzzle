@@ -31,10 +31,10 @@
    - Modify card drawing routine to use rgba fills, new stroke color, and texture overlay. ✅
    - Center card text with script font and drop shadow for readability. ✅
 4. **Cake Redraw (Next)**
-   - Place cake lower to align with card stack and integrate with hero perspective.
-   - Replace current rectangle cake with layered shapes representing a 2.5D perspective.
-   - Redistribute 27 candles along the top ellipse; ensure lighting animation functions.
-   - Add frosting shadows/highlights for delicacy.
+   - Lower the cake so its base aligns with the card stack baseline.
+   - Replace the blocky cake with layered shapes (oval top, frosting rim, plate) to fake 2.5D depth.
+   - Redistribute 27 smaller candles along the oval; keep flame animation responsive to state.
+   - Add highlights/shadows for frosting, plate, and candle stems to increase delicacy.
 5. **Card Dataset Integration**
    - Convert `card.js` dataset to JSON; ensure `TOTAL_CARDS` stays in sync.
    - Update store initialization to pull card copy from the dataset and scale card size.

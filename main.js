@@ -65,7 +65,7 @@ function positionCardAtStack(card, index) {
 
 const heroImage = new Image();
 let heroImageLoaded = false;
-heroImage.src = 'images/hero-jenny.png';
+heroImage.src = 'images/kuoka.png';
 heroImage.onload = () => {
     heroImageLoaded = true;
     drawScene();
@@ -85,6 +85,17 @@ cardTexture.onload = () => {
 };
 cardTexture.onerror = (err) => {
     console.warn('Failed to load card texture image', err);
+};
+
+const cakeImage = new Image();
+let cakeImageLoaded = false;
+cakeImage.src = 'images/cake.png';
+cakeImage.onload = () => {
+    cakeImageLoaded = true;
+    drawScene();
+};
+cakeImage.onerror = (err) => {
+    console.warn('Failed to load cake image', err);
 };
 
 function handleStoreUpdate() {
@@ -228,70 +239,35 @@ function drawScene() {
 function drawCake() {
     const { candlesLit } = store.getState();
     const { x, y, w, h } = scene.right;
-    const plateHeight = 18;
-    const plateTop = y + h - plateHeight;
-    const plateRadiusX = w * 0.55;
-    const plateRadiusY = plateHeight * 1.2;
     const centerX = x + w / 2;
+    let cakeWidth = w * 0.75;
+    let cakeHeight = cakeWidth * (cakeImage.height / cakeImage.width);
+    if (cakeHeight > h) {
+        const scale = h / cakeHeight;
+        cakeHeight *= scale;
+        cakeWidth *= scale;
+    }
+    const cakeX = centerX - cakeWidth / 2;
+    const cakeY = y + h - cakeHeight;
 
-    // plate
-    ctx.save();
-    const plateGradient = ctx.createLinearGradient(centerX - plateRadiusX, plateTop, centerX + plateRadiusX, plateTop);
-    plateGradient.addColorStop(0, 'rgba(255,239,226,0.9)');
-    plateGradient.addColorStop(1, 'rgba(245,224,204,0.9)');
-    ctx.fillStyle = plateGradient;
-    ctx.beginPath();
-    ctx.ellipse(centerX, plateTop + plateHeight / 2, plateRadiusX, plateRadiusY, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (cakeImageLoaded) {
+        ctx.drawImage(cakeImage, cakeX, cakeY, cakeWidth, cakeHeight);
+    } else {
+        ctx.fillStyle = '#f0cbb0';
+        drawRoundedRect(cakeX, cakeY, cakeWidth, cakeHeight, 18);
+        ctx.fill();
+    }
 
-    // cake body dimensions
-    const frostingHeight = 26;
-    const bodyHeight = h - plateHeight - frostingHeight;
-    const bodyWidth = w * 0.6;
-    const bodyX = centerX - bodyWidth / 2;
-    const bodyY = plateTop - bodyHeight;
-    const topEllipseRadiusX = bodyWidth / 2;
-    const topEllipseRadiusY = topEllipseRadiusX * 0.35;
-    const topCenterY = bodyY + frostingHeight * 0.6;
-
-    // cake body
-    ctx.save();
-    const bodyGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX, plateTop);
-    bodyGradient.addColorStop(0, '#fbe0cf');
-    bodyGradient.addColorStop(1, '#f6c7a9');
-    ctx.fillStyle = bodyGradient;
-    drawRoundedRect(bodyX, bodyY, bodyWidth, bodyHeight, 22);
-    ctx.fill();
-    ctx.restore();
-
-    // frosting rim
-    ctx.save();
-    ctx.fillStyle = '#fdf1e8';
-    ctx.beginPath();
-    ctx.ellipse(centerX, topCenterY, topEllipseRadiusX, topEllipseRadiusY, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // frosting shadow
-    ctx.save();
-    ctx.strokeStyle = 'rgba(240,200,170,0.6)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(centerX, topCenterY + topEllipseRadiusY * 0.35, topEllipseRadiusX * 0.95, topEllipseRadiusY * 0.8, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    // candles around oval top
+    const topCenterY = cakeY + cakeHeight * 0.22;
+    const candleRadiusX = cakeWidth * 0.42;
+    const candleRadiusY = candleRadiusX * 0.45;
+    const stemHeight = Math.min(40, cakeHeight * 0.35);
     const candleCount = TOTAL_CARDS;
-    const candleRadiusX = topEllipseRadiusX * 0.9;
-    const candleRadiusY = topEllipseRadiusY * 0.75;
-    const stemHeight = 38;
     for (let i = 0; i < candleCount; i += 1) {
         const angle = Math.PI - (Math.PI * (i + 0.5)) / candleCount;
         const cx = centerX + Math.cos(angle) * candleRadiusX;
         const cy = topCenterY + Math.sin(angle) * candleRadiusY;
-        const stemWidth = 4;
+        const stemWidth = 3.2;
         ctx.fillStyle = '#c3b19c';
         ctx.fillRect(cx - stemWidth / 2, cy - stemHeight, stemWidth, stemHeight);
 
@@ -312,17 +288,6 @@ function drawCake() {
         }
         ctx.restore();
     }
-
-    // subtle highlight on cake front
-    ctx.save();
-    const highlightGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX + bodyWidth, bodyY);
-    highlightGradient.addColorStop(0, 'rgba(255,255,255,0.25)');
-    highlightGradient.addColorStop(0.5, 'rgba(255,255,255,0)');
-    highlightGradient.addColorStop(1, 'rgba(255,255,255,0.2)');
-    ctx.fillStyle = highlightGradient;
-    drawRoundedRect(bodyX + 8, bodyY + 12, bodyWidth - 16, bodyHeight - 24, 18);
-    ctx.fill();
-    ctx.restore();
 }
 
 function drawCard(card, inStack = false) {
