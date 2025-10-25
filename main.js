@@ -200,7 +200,27 @@ function drawHeroBackdrop() {
         const imgY = hero.y + hero.h - padding - drawHeight + 100;
         ctx.globalAlpha = 0.9;
         ctx.drawImage(heroImage, imgX, imgY, drawWidth, drawHeight);
+        ctx.globalAlpha = 1;
     }
+
+    const creaseCenter = hero.x + hero.w / 2;
+    const creaseHalfWidth = 14;
+    const creaseGradient = ctx.createLinearGradient(creaseCenter - creaseHalfWidth, hero.y, creaseCenter + creaseHalfWidth, hero.y);
+    creaseGradient.addColorStop(0, 'rgba(180,161,141,0.05)');
+    creaseGradient.addColorStop(0.44, 'rgba(180,161,141,0.18)');
+    creaseGradient.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+    creaseGradient.addColorStop(0.56, 'rgba(150,130,110,0.25)');
+    creaseGradient.addColorStop(1, 'rgba(150,130,110,0.08)');
+    ctx.fillStyle = creaseGradient;
+    ctx.fillRect(creaseCenter - creaseHalfWidth, hero.y, creaseHalfWidth * 2, hero.h);
+
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(creaseCenter + 4, hero.y + 18, 1.5, hero.h - 36);
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(creaseCenter - 3, hero.y + 12, 2, hero.h - 24);
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     ctx.save();
@@ -265,15 +285,18 @@ function drawCake() {
         ctx.fill();
     }
 
-    const topCenterY = cakeY + cakeHeight * 0.22;
-    const candleRadiusX = cakeWidth * 0.42;
-    const candleRadiusY = candleRadiusX * 0.45;
-    const stemHeight = Math.min(40, cakeHeight * 0.35);
     const candleCount = dataReady ? stateSnapshot.totalCards : cards.length;
+    const topSurfaceY = cakeY + cakeHeight * 0.22;
+    const candleRadiusX = cakeWidth * 0.35;
+    const candleRadiusY = cakeHeight * 0.12;
+    const angleInset = Math.PI * 0.18;
+    const angleSpan = Math.PI - angleInset * 2;
+    const stemHeight = Math.min(36, cakeHeight * 0.32);
     for (let i = 0; i < candleCount; i += 1) {
-        const angle = Math.PI - (Math.PI * (i + 0.5)) / candleCount;
+        const progress = candleCount > 1 ? i / (candleCount - 1) : 0.5;
+        const angle = Math.PI - angleInset - angleSpan * progress;
         const cx = centerX + Math.cos(angle) * candleRadiusX;
-        const cy = topCenterY + Math.sin(angle) * candleRadiusY;
+        const cy = topSurfaceY + Math.sin(angle) * candleRadiusY;
         const stemWidth = 3.2;
         ctx.fillStyle = '#c3b19c';
         ctx.fillRect(cx - stemWidth / 2, cy - stemHeight, stemWidth, stemHeight);

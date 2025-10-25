@@ -8,6 +8,7 @@
 - **A6 Card Transparency & Styling** (Done): Apply semi-transparent fills/frames so stacked cards reveal the hero art while staying readable.
 - **A7 2.5D Cake & Candle Layout**: Redesign cake with an oval top, slimmer 27-candle grid, and updated flame animation matching the new perspective.
 - **A8 Card Content Dataset** (In Progress): Cards shrink slightly and now load copy from `card.js` at runtime, keeping the dataset aligned with the store.
+- **A9 Storybook Crease**: Add a soft vertical fold down the hero backdrop to reinforce the two-page layout and guide cards to the left panel.
 - **A4 Motion Polish**: Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps, tuned after the visual refresh.
 
 ## Epic B · Wishes, Blowout, Capture
