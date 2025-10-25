@@ -39,8 +39,15 @@ const CAKE_RIM = {
     angleEndDeg: 350,
     perspectiveDropRatio: 0.05,
 };
+const BOBO = {
+    widthRatio: 0.28,
+    maxHeightRatio: 0.72,
+    gapRatio: 0.036,
+    baselineOffsetRatio: 0,
+};
 const store = createStore();
 let cards = [];
+let cakeLayout = null;
 let dataReady = false;
 let unsubscribeStore = null;
 let cardInteractions = null;
@@ -112,6 +119,17 @@ cakeImage.onload = () => {
 };
 cakeImage.onerror = (err) => {
     console.warn('Failed to load cake image', err);
+};
+
+const boboImage = new Image();
+let boboImageLoaded = false;
+boboImage.src = 'images/bobo.png';
+boboImage.onload = () => {
+    boboImageLoaded = true;
+    drawScene();
+};
+boboImage.onerror = (err) => {
+    console.warn('Failed to load bobo companion image', err);
 };
 
 function handleStoreUpdate() {
@@ -249,6 +267,7 @@ function drawScene() {
 
     // right panel — cake + candles
     drawCake();
+    drawBobo();
 
     // stack shadow area
     // stack shadow hint (subtle shadow only, no fill)
@@ -276,6 +295,7 @@ function drawCake() {
     const candlesLit = stateSnapshot.candlesLit;
     const { x, y, w, h } = scene.right;
     const centerX = x + w / 2;
+    cakeLayout = null;
     let cakeWidth = w * 0.9;
     let cakeHeight = cakeWidth * (cakeImage.height / cakeImage.width);
     // if (cakeHeight > h) {
@@ -285,6 +305,7 @@ function drawCake() {
     // }
     const cakeX = centerX - cakeWidth / 2;
     const cakeY = y + h - cakeHeight;
+    cakeLayout = { x: cakeX, y: cakeY, w: cakeWidth, h: cakeHeight, centerX };
 
     if (cakeImageLoaded) {
         ctx.drawImage(cakeImage, cakeX, cakeY, cakeWidth, cakeHeight);
@@ -330,6 +351,30 @@ function drawCake() {
         }
         ctx.restore();
     }
+}
+
+function drawBobo() {
+    if (!boboImageLoaded || !cakeLayout) return;
+    const { x, y, w, h } = scene.right;
+    const aspect = boboImage.width && boboImage.height ? boboImage.width / boboImage.height : 420 / 560;
+    let width = w * BOBO.widthRatio;
+    let height = width / aspect;
+    const maxHeight = h * BOBO.maxHeightRatio;
+    if (height > maxHeight) {
+        const scale = maxHeight / height;
+        height = maxHeight;
+        width *= scale;
+    }
+
+    const gap = w * BOBO.gapRatio;
+    const baseline = cakeLayout.y + cakeLayout.h;
+    const baselineOffset = h * BOBO.baselineOffsetRatio;
+    const rawX = cakeLayout.x - gap - width;
+    const minX = x + w * 0.02;
+    const boboX = Math.max(minX, rawX);
+    const boboY = baseline - height + baselineOffset;
+
+    ctx.drawImage(boboImage, boboX, boboY, width, height);
 }
 
 function drawCard(card, inStack = false) {
