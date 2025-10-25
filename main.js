@@ -32,11 +32,11 @@ const CARD_WIDTH = 176;
 const CARD_HEIGHT = 56;
 const DEG2RAD = Math.PI / 180;
 const CAKE_RIM = {
-    centerYOffset: 0.36, // proportion of cake height where the ellipse center sits
-    radiusXRatio: 0.44,
-    radiusYRatio: 0.12,
-    angleStartDeg: 210,
-    angleEndDeg: 330,
+    centerYOffset: 0.4, // proportion of cake height where the ellipse center sits
+    radiusXRatio: 0.35,
+    radiusYRatio: 0.25,
+    angleStartDeg: 20,
+    angleEndDeg: 350,
     perspectiveDropRatio: 0.05,
 };
 const store = createStore();
@@ -310,7 +310,7 @@ function drawCake() {
         let cy = ellipseCenterY + Math.sin(angle) * candleRadiusY;
         cy += perspectiveDrop * -Math.sin(angle);
         const stemWidth = 3.2;
-        ctx.fillStyle = '#c3b19c';
+        ctx.fillStyle = '#d64a3b';
         ctx.fillRect(cx - stemWidth / 2, cy - stemHeight, stemWidth, stemHeight);
 
         const isLit = i + 1 <= candlesLit;
@@ -323,7 +323,7 @@ function drawCake() {
             ctx.ellipse(cx, cy - stemHeight, 5, 9, 0, 0, Math.PI * 2);
             ctx.fill();
         } else {
-            ctx.fillStyle = '#cfc4b8';
+            ctx.fillStyle = '#f2a39c';
             ctx.beginPath();
             ctx.ellipse(cx, cy - stemHeight + 2, 4, 4, 0, 0, Math.PI * 2);
             ctx.fill();
