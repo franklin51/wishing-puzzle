@@ -13,9 +13,9 @@
 - **A4 Motion Polish** (Discard): Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps, tuned after the visual refresh.
 
 ## Epic B · Wishes, Blowout, Capture
-- **B1 Wish Panel**: Three-column input with sticker slot; submit writes text and sticker to the active card.
-- **B2 Candle Blowout**: Microphone threshold extinguishes candles; UI signals threshold state and offers a manual fallback if denied.
-- **B3 Front Camera Capture**: 3-2-1 countdown, capture uses front camera, and places the frame on the left card panel.
+- **B1 Wish Panel**: Three-column input with slot using card-paper (should add new one) background. The slots should be on the card panel in the beginning; no need to submit text; The 下一步 should trigger candle blowing.
+- **B2 Candle Blowout**: Microphone threshold extinguishes candles; Some candles are blowout but some remain lighted if not reaching the threshhold. All the candles back to be lighted as a fallback if denied. The number of candles be blowout follow the percentage of how close to the threshhold.
+- **B3 Front Camera Capture**: capture uses front camera while the candles are blowout, and places the frame on the right top of the card panel.
 
 ## Epic C · Output & Assets
 - **C1 High-Res Export**: Export delivers 1920×1080 PNG and A4 PDF; `exportCanvas` composes all layers correctly.
