@@ -7,7 +7,7 @@
 - **A5 Scene Background Composite** (Done): Stretch the scene so the cake sits within the hero background; blend `Jenny.png` (temporary asset) into the left panel and adjust canvas widths.
 - **A6 Card Transparency & Styling** (Done): Apply semi-transparent fills/frames so stacked cards reveal the hero art while staying readable.
 - **A7 2.5D Cake & Candle Layout**: Redesign cake with an oval top, slimmer 27-candle grid, and updated flame animation matching the new perspective.
-- **A8 Card Content Dataset**: Shrink card dimensions and source copy from `card.js` via a JSON feed to keep data/state aligned.
+- **A8 Card Content Dataset** (In Progress): Cards shrink slightly and now load copy from `card.js` at runtime, keeping the dataset aligned with the store.
 - **A4 Motion Polish**: Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps, tuned after the visual refresh.
 
 ## Epic B · Wishes, Blowout, Capture

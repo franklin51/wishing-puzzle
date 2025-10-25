@@ -28,10 +28,13 @@ const STATE = { INTRO: 'intro', ARRANGE: 'arrange', WISHES: 'wishes', BLOW: 'blo
 let state = STATE.INTRO;
 
 const GRID = 12; // snap grid in px
-const DEFAULT_TOTAL_CARDS = 27;
-const store = createStore({ totalCards: DEFAULT_TOTAL_CARDS });
-store.initializeDeck(DEFAULT_TOTAL_CARDS);
-const TOTAL_CARDS = store.getState().totalCards;
+const CARD_WIDTH = 176;
+const CARD_HEIGHT = 56;
+const store = createStore();
+let cards = [];
+let dataReady = false;
+let unsubscribeStore = null;
+let cardInteractions = null;
 
 // Positions are computed relative to scene rects
 let scene = {
@@ -45,22 +48,26 @@ let scene = {
 
 // Cards dataset — uniform styling with slight bg variations
 const bgVariants = ['#fffdf8', '#fff8f1', '#fffaf4', '#fff6ed'];
-let cards = Array.from({ length: TOTAL_CARDS }, (_, i) => ({
-    id: i,
-    text: `Card ${i + 1}`, // TODO: replace with real copy
-    bg: bgVariants[i % bgVariants.length],
-    placed: false,
-    x: scene.stack.x + 8 + i * 0.8, // slight offset to show stack
-    y: scene.stack.y + 8 + i * 0.5,
-    w: 190,
-    h: 48,
-    z: i + 1, // stack order
-}));
-cards.forEach((card, index) => positionCardAtStack(card, index));
+
+function buildCardModel(text, index) {
+    const card = {
+        id: index,
+        text,
+        bg: bgVariants[index % bgVariants.length],
+        placed: false,
+        x: scene.stack.x + 14 + index * 0.6,
+        y: scene.stack.y + 10 + index * 0.45,
+        w: CARD_WIDTH,
+        h: CARD_HEIGHT,
+        z: index + 1,
+    };
+    positionCardAtStack(card, index);
+    return card;
+}
 
 function positionCardAtStack(card, index) {
-    card.x = scene.stack.x + 12 + index * 0.6;
-    card.y = scene.stack.y + 6 + index * 0.4;
+    card.x = scene.stack.x + 18 + index * 0.55;
+    card.y = scene.stack.y + 10 + index * 0.35;
 }
 
 const heroImage = new Image();
@@ -99,6 +106,7 @@ cakeImage.onerror = (err) => {
 };
 
 function handleStoreUpdate() {
+    if (!dataReady || !cards.length) return;
     syncCardsFromStore();
     setProgress();
     drawScene();
@@ -118,15 +126,13 @@ function setProgress() {
     btnNext.disabled = !(candlesLit === totalCards && state === STATE.ARRANGE);
 }
 
-store.subscribe(handleStoreUpdate);
-
 function layout() {
     // Keep base 16:9 internal resolution; canvas CSS scales responsively
     canvas.width = 1280; canvas.height = 720;
     scene.w = canvas.width; scene.h = canvas.height;
     const margin = 24;
     const heroPadding = 48;
-    const stackHeight = 72;
+    const stackHeight = CARD_HEIGHT + 20;
     scene.hero = { x: margin, y: margin, w: scene.w - margin * 2, h: scene.h - margin * 2 };
     scene.left = {
         x: scene.hero.x + heroPadding,
@@ -181,17 +187,17 @@ function drawHeroBackdrop() {
     ctx.fillRect(hero.x, hero.y, hero.w, hero.h);
 
     if (heroImageLoaded) {
-        const padding = 36;
+        const padding = 10;
         const availableHeight = hero.h - padding * 2;
-        const availableWidth = hero.w * 0.55;
+        const availableWidth = hero.w * 0.7;
         let drawWidth = availableHeight * (heroImage.width / heroImage.height);
         let drawHeight = availableHeight;
         if (drawWidth > availableWidth) {
             drawWidth = availableWidth;
             drawHeight = drawWidth * (heroImage.height / heroImage.width);
         }
-        const imgX = hero.x + padding;
-        const imgY = hero.y + hero.h - padding - drawHeight;
+        const imgX = hero.x + padding - 100;
+        const imgY = hero.y + hero.h - padding - drawHeight + 100;
         ctx.globalAlpha = 0.9;
         ctx.drawImage(heroImage, imgX, imgY, drawWidth, drawHeight);
     }
@@ -237,16 +243,17 @@ function drawScene() {
 }
 
 function drawCake() {
-    const { candlesLit } = store.getState();
+    const stateSnapshot = store.getState();
+    const candlesLit = stateSnapshot.candlesLit;
     const { x, y, w, h } = scene.right;
     const centerX = x + w / 2;
-    let cakeWidth = w * 0.75;
+    let cakeWidth = w * 0.9;
     let cakeHeight = cakeWidth * (cakeImage.height / cakeImage.width);
-    if (cakeHeight > h) {
-        const scale = h / cakeHeight;
-        cakeHeight *= scale;
-        cakeWidth *= scale;
-    }
+    // if (cakeHeight > h) {
+    //     const scale = h / cakeHeight;
+    //     cakeHeight *= scale;
+    //     cakeWidth *= scale;
+    // }
     const cakeX = centerX - cakeWidth / 2;
     const cakeY = y + h - cakeHeight;
 
@@ -262,7 +269,7 @@ function drawCake() {
     const candleRadiusX = cakeWidth * 0.42;
     const candleRadiusY = candleRadiusX * 0.45;
     const stemHeight = Math.min(40, cakeHeight * 0.35);
-    const candleCount = TOTAL_CARDS;
+    const candleCount = dataReady ? stateSnapshot.totalCards : cards.length;
     for (let i = 0; i < candleCount; i += 1) {
         const angle = Math.PI - (Math.PI * (i + 0.5)) / candleCount;
         const cx = centerX + Math.cos(angle) * candleRadiusX;
@@ -314,14 +321,36 @@ function drawCard(card, inStack = false) {
 
     // text
     ctx.fillStyle = '#3f352c';
-    ctx.font = '400 24px "Dancing Script", "PingFang TC", sans-serif';
+    ctx.font = '500 20px "Noto Sans TC", "PingFang TC", sans-serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(255,255,255,0.85)';
     ctx.shadowBlur = 5;
-    ctx.fillText(card.text, x + card.w / 2, y + card.h / 2);
+    const lines = wrapCardText(card.text, card.w - 32, ctx);
+    const lineHeight = 24;
+    const startY = y + card.h / 2 - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, index) => {
+        ctx.fillText(line, x + card.w / 2, startY + index * lineHeight);
+    });
     ctx.shadowBlur = 0;
     ctx.textAlign = 'left';
+}
+
+function wrapCardText(text, maxWidth, context) {
+    if (!text) return [''];
+    const lines = [];
+    let current = '';
+    for (const char of text) {
+        const testLine = current + char;
+        if (context.measureText(testLine).width > maxWidth && current) {
+            lines.push(current);
+            current = char;
+        } else {
+            current = testLine;
+        }
+    }
+    if (current) lines.push(current);
+    return lines;
 }
 
 // interactions wired below
@@ -422,13 +451,12 @@ function handleResize() {
     drawScene();
 }
 
-// ---- Init ----
-export function init() {
-    layout();
-    syncCardsFromStore();
-    setProgress();
-    drawScene();
-    initCardInteractions({
+function wireCardInteractions() {
+    if (!cards.length || !canvas) return;
+    if (cardInteractions && typeof cardInteractions.destroy === 'function') {
+        cardInteractions.destroy();
+    }
+    cardInteractions = initCardInteractions({
         canvas,
         store,
         cards,
@@ -439,6 +467,62 @@ export function init() {
         },
         drawScene,
     });
+}
+
+function ensureStoreSubscription() {
+    if (unsubscribeStore) return;
+    unsubscribeStore = store.subscribe(handleStoreUpdate);
+}
+
+async function loadCardDataset() {
+    const response = await fetch('card.js', { cache: 'no-store' });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch card dataset: ${response.status}`);
+    }
+    const raw = await response.json();
+    if (!raw || !Array.isArray(raw.cards)) {
+        throw new Error('Card dataset missing "cards" array.');
+    }
+    return raw.cards.map((entry, index) => {
+        const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+        return { text, originalId: entry.id ?? index + 1, index };
+    });
+}
+
+function applyCardDataset(dataset) {
+    const normalized = dataset.map((entry, position) => {
+        if (entry.originalId && entry.originalId - 1 !== position) {
+            console.warn(`Card dataset id mismatch at position ${position}:`, entry.originalId);
+        }
+        return buildCardModel(entry.text || `Card ${position + 1}`, position);
+    });
+    cards = normalized;
+    dataReady = true;
+    ensureStoreSubscription();
+    store.initializeDeck(cards.length);
+    syncCardsFromStore();
+    setProgress();
+    drawScene();
+    wireCardInteractions();
+}
+
+function renderDatasetError(error) {
+    const message = typeof error === 'string' ? error : error?.message || 'Unable to load card dataset.';
+    console.error(message);
+    progressText.textContent = 'Card dataset failed to load.';
+    btnStart.disabled = true;
+    btnNext.disabled = true;
+}
+
+// ---- Init ----
+export async function init() {
+    layout();
+    try {
+        const dataset = await loadCardDataset();
+        applyCardDataset(dataset);
+    } catch (error) {
+        renderDatasetError(error);
+    }
     window.addEventListener('resize', handleResize);
 }
 
