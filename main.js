@@ -39,6 +39,18 @@ const CAKE_RIM = {
     angleEndDeg: 350,
     perspectiveDropRatio: 0.05,
 };
+const LAYOUT = {
+    margin: 24,
+    heroPadding: 48,
+    stackShiftX: 120,
+    stackRightPadding: 24,
+    cakeGap: 72,
+    rightMargin: 56,
+    cakeHeight: 260,
+    cakeBaselineOffset: 32,
+    heroImageOffsetX: -60,
+    heroImageOffsetY: 140,
+};
 const BOBO = {
     widthRatio: 0.28,
     maxHeightRatio: 0.72,
@@ -82,7 +94,9 @@ function buildCardModel(text, index) {
 }
 
 function positionCardAtStack(card, index) {
-    card.x = scene.stack.x + 18 + index * 0.55;
+    const baseX = scene.stack.x + 18 + index * 0.55;
+    const maxX = scene.stack.x + scene.stack.w - card.w - 12;
+    card.x = Math.min(baseX, maxX);
     card.y = scene.stack.y + 10 + index * 0.35;
 }
 
@@ -157,8 +171,8 @@ function layout() {
     // Keep base 16:9 internal resolution; canvas CSS scales responsively
     canvas.width = 1280; canvas.height = 720;
     scene.w = canvas.width; scene.h = canvas.height;
-    const margin = 24;
-    const heroPadding = 48;
+    const margin = LAYOUT.margin;
+    const heroPadding = LAYOUT.heroPadding;
     const stackHeight = CARD_HEIGHT + 20;
     scene.hero = { x: margin, y: margin, w: scene.w - margin * 2, h: scene.h - margin * 2 };
     scene.left = {
@@ -168,20 +182,21 @@ function layout() {
         h: scene.hero.h - heroPadding * 2 - (stackHeight - 24),
     };
     scene.stack = {
-        x: scene.left.x,
+        x: scene.left.x + LAYOUT.stackShiftX,
         y: scene.hero.y + scene.hero.h - stackHeight - heroPadding / 2,
-        w: scene.left.w,
+        w: scene.left.w - LAYOUT.stackShiftX - LAYOUT.stackRightPadding,
         h: stackHeight,
     };
-    const cakeGap = 72;
-    const rightMargin = 56;
-    const rightX = scene.left.x + scene.left.w + cakeGap;
+    const rightX = scene.left.x + scene.left.w + LAYOUT.cakeGap;
     const stackBaseline = scene.stack.y + scene.stack.h;
-    const cakeHeight = 220;
+    const cakeHeight = LAYOUT.cakeHeight;
+    const desiredCakeY = stackBaseline - cakeHeight + LAYOUT.cakeBaselineOffset;
+    const minCakeY = scene.hero.y + heroPadding;
+    const maxCakeY = scene.hero.y + scene.hero.h - cakeHeight - heroPadding / 2;
     scene.right = {
         x: rightX,
-        y: Math.max(scene.hero.y + 48, stackBaseline - cakeHeight),
-        w: scene.hero.x + scene.hero.w - rightX - rightMargin,
+        y: Math.min(maxCakeY, Math.max(minCakeY, desiredCakeY)),
+        w: scene.hero.x + scene.hero.w - rightX - LAYOUT.rightMargin,
         h: cakeHeight,
     };
     cards.forEach((card, index) => {
@@ -223,8 +238,8 @@ function drawHeroBackdrop() {
             drawWidth = availableWidth;
             drawHeight = drawWidth * (heroImage.height / heroImage.width);
         }
-        const imgX = hero.x + padding - 100;
-        const imgY = hero.y + hero.h - padding - drawHeight + 100;
+        const imgX = hero.x + padding + LAYOUT.heroImageOffsetX;
+        const imgY = hero.y + hero.h - padding - drawHeight + LAYOUT.heroImageOffsetY;
         ctx.globalAlpha = 0.9;
         ctx.drawImage(heroImage, imgX, imgY, drawWidth, drawHeight);
         ctx.globalAlpha = 1;
@@ -370,7 +385,7 @@ function drawBobo() {
     const baseline = cakeLayout.y + cakeLayout.h;
     const baselineOffset = h * BOBO.baselineOffsetRatio;
     const rawX = cakeLayout.x - gap - width;
-    const minX = x + w * 0.02;
+    const minX = scene.right.x - width - w * 0.25;
     const boboX = Math.max(minX, rawX);
     const boboY = baseline - height + baselineOffset;
 
