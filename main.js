@@ -30,6 +30,15 @@ let state = STATE.INTRO;
 const GRID = 12; // snap grid in px
 const CARD_WIDTH = 176;
 const CARD_HEIGHT = 56;
+const DEG2RAD = Math.PI / 180;
+const CAKE_RIM = {
+    centerYOffset: 0.36, // proportion of cake height where the ellipse center sits
+    radiusXRatio: 0.44,
+    radiusYRatio: 0.12,
+    angleStartDeg: 210,
+    angleEndDeg: 330,
+    perspectiveDropRatio: 0.05,
+};
 const store = createStore();
 let cards = [];
 let dataReady = false;
@@ -286,17 +295,20 @@ function drawCake() {
     }
 
     const candleCount = dataReady ? stateSnapshot.totalCards : cards.length;
-    const topSurfaceY = cakeY + cakeHeight * 0.22;
-    const candleRadiusX = cakeWidth * 0.35;
-    const candleRadiusY = cakeHeight * 0.12;
-    const angleInset = Math.PI * 0.18;
-    const angleSpan = Math.PI - angleInset * 2;
+    const ellipseCenterY = cakeY + cakeHeight * CAKE_RIM.centerYOffset;
+    const candleRadiusX = cakeWidth * CAKE_RIM.radiusXRatio;
+    const candleRadiusY = cakeHeight * CAKE_RIM.radiusYRatio;
+    const startAngle = CAKE_RIM.angleStartDeg * DEG2RAD;
+    const endAngle = CAKE_RIM.angleEndDeg * DEG2RAD;
+    const angleSpan = endAngle - startAngle;
+    const perspectiveDrop = cakeHeight * CAKE_RIM.perspectiveDropRatio;
     const stemHeight = Math.min(36, cakeHeight * 0.32);
     for (let i = 0; i < candleCount; i += 1) {
         const progress = candleCount > 1 ? i / (candleCount - 1) : 0.5;
-        const angle = Math.PI - angleInset - angleSpan * progress;
+        const angle = startAngle + angleSpan * progress;
         const cx = centerX + Math.cos(angle) * candleRadiusX;
-        const cy = topSurfaceY + Math.sin(angle) * candleRadiusY;
+        let cy = ellipseCenterY + Math.sin(angle) * candleRadiusY;
+        cy += perspectiveDrop * -Math.sin(angle);
         const stemWidth = 3.2;
         ctx.fillStyle = '#c3b19c';
         ctx.fillRect(cx - stemWidth / 2, cy - stemHeight, stemWidth, stemHeight);
