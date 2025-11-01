@@ -18,7 +18,6 @@ const btnNext = document.getElementById('btnNext');
 const btnReset = document.getElementById('btnReset');
 const wishCountdown = document.getElementById('wishCountdown');
 const btnWishSkip = document.getElementById('btnWishSkip');
-const btnCloseCapture = document.getElementById('btnCloseCapture');
 const video = document.getElementById('video');
 const captureStatusText = document.getElementById('captureStatusText');
 const listeningIndicator = document.getElementById('listeningIndicator');
@@ -244,6 +243,24 @@ function layout() {
     cards.forEach((card, index) => {
         if (!card.placed) positionCardAtStack(card, index);
     });
+    updateCapturePanelPosition();
+}
+
+function updateCapturePanelPosition() {
+    if (!capturePanel || !scene.hero) return;
+    const hero = scene.hero;
+    const targetX = hero.x + hero.w / 2;
+    const targetY = hero.y + hero.h / 2;
+    const leftPercent = (targetX / canvas.width) * 100;
+    const topPercent = (targetY / canvas.height) * 100;
+    console.log('[capturePanel] position', {
+        targetX,
+        targetY,
+        leftPercent,
+        topPercent,
+    });
+    capturePanel.style.setProperty('--capture-panel-left', `${leftPercent}%`);
+    capturePanel.style.setProperty('--capture-panel-top', `${topPercent}%`);
 }
 
 function drawRoundedRect(x, y, w, h, r) {
@@ -440,54 +457,55 @@ function drawCapturedPhoto() {
     const photo = capturedPhoto.image;
     const panel = scene.right;
     const aspect = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
-    const maxPhotoWidth = Math.min(panel.w * 0.82, 260);
+    const maxPhotoWidth = Math.min(panel.w * 1.1, 540);
     let photoWidth = maxPhotoWidth;
     let photoHeight = photoWidth / aspect;
-    const maxPhotoHeight = Math.min(panel.h * 0.62, 220);
+    const maxPhotoHeight = Math.min(panel.h, 480);
     if (photoHeight > maxPhotoHeight) {
         photoHeight = maxPhotoHeight;
         photoWidth = photoHeight * aspect;
     }
-    const paddingSide = 14;
-    const paddingTop = 14;
-    const paddingBottom = 30;
+    const paddingSide = 16;
+    const paddingTop = 16;
+    const paddingBottom = 34;
     const frameWidth = photoWidth + paddingSide * 2;
     const frameHeight = photoHeight + paddingTop + paddingBottom;
-    let frameX = panel.x + (panel.w - frameWidth) / 2;
-    let frameY = panel.y - frameHeight - 18;
-    const minFrameY = scene.hero.y + 24;
-    if (frameY < minFrameY) {
-        frameY = minFrameY;
-    }
+    const hero = scene.hero;
+    const seamX = hero.x + hero.w / 2;
+    const rightEdge = hero.x + hero.w;
+    const rightHalfCenterX = seamX + (rightEdge - seamX) / 2;
+    const minFrameX = seamX + 16;
+    const maxFrameX = rightEdge - frameWidth - 16;
+    let frameX = rightHalfCenterX - frameWidth / 2;
+    frameX = Math.max(minFrameX, Math.min(maxFrameX, frameX));
+    const baseCenterY = hero.y + hero.h * 0.42;
+    const cakeTop = cakeLayout ? cakeLayout.y : panel.y + panel.h * 0.65;
+    const minFrameY = hero.y + 24;
+    const maxFrameY = cakeTop - frameHeight - 36;
+    let frameY = baseCenterY - frameHeight / 2;
+    frameY = Math.max(minFrameY, Math.min(maxFrameY, frameY));
 
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
-    ctx.shadowBlur = 16;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    drawRoundedRect(frameX, frameY, frameWidth, frameHeight, 16);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+    drawRoundedRect(frameX, frameY, frameWidth, frameHeight, 18);
     ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = 'rgba(195, 106, 90, 0.18)';
-    ctx.lineWidth = 1;
-    drawRoundedRect(frameX, frameY, frameWidth, frameHeight, 16);
-    ctx.stroke();
     ctx.restore();
 
     const photoX = frameX + paddingSide;
     const photoY = frameY + paddingTop;
     ctx.save();
-    drawRoundedRect(photoX, photoY, photoWidth, photoHeight, 12);
+    drawRoundedRect(photoX, photoY, photoWidth, photoHeight, 16);
     ctx.clip();
     ctx.drawImage(photo, photoX, photoY, photoWidth, photoHeight);
     ctx.restore();
 
-    ctx.fillStyle = 'rgba(63, 53, 44, 0.6)';
+    ctx.fillStyle = 'rgba(63, 53, 44, 0.74)';
     ctx.font = '600 14px "Noto Sans TC", "PingFang TC", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('這一刻被收藏', frameX + frameWidth / 2, frameY + frameHeight - 12);
+    ctx.fillText('我們一起吹蠟燭', frameX + frameWidth / 2, frameY + frameHeight - 14);
     ctx.textAlign = 'left';
 }
 
@@ -585,7 +603,6 @@ function showWishHintOverlay() {
     wishesPanel.classList.remove('hidden');
     startWishHintCountdown(WISH_HINT_DURATION_MS);
     startBlowDetection();
-    startCameraPreview();
 }
 
 function startWishHintCountdown(durationMs) {
@@ -646,7 +663,6 @@ async function enterBlowStage(manualTrigger = false) {
     if (manualTrigger) {
         stopBlowDetection();
         stopCameraPreview(true);
-        setCaptureStatus('預覽已關閉');
         clearProgressMessage();
         transitionToCaptureStage();
         return;
@@ -860,19 +876,6 @@ function clearCakeTapTimer() {
 
 canvas.addEventListener('pointerdown', handleCanvasPointerTap);
 
-if (btnCloseCapture) {
-    btnCloseCapture.addEventListener('click', () => {
-        setCaptureStatus('預覽已隱藏');
-        if (capturePanelHideTimeout) {
-            window.clearTimeout(capturePanelHideTimeout);
-            capturePanelHideTimeout = null;
-        }
-        if (capturePanel) {
-            capturePanel.classList.add('hidden');
-        }
-    });
-}
-
 function resetAll() {
     state = STATE.INTRO;
     stopWishHintTimers();
@@ -925,10 +928,11 @@ async function startCameraPreview() {
         video.muted = true;
         const playPromise = video.play();
         if (playPromise && typeof playPromise.then === 'function') {
-            await playPromise.catch(() => {});
+            await playPromise.catch(() => { });
         }
         cameraActive = true;
         capturePanel.classList.remove('hidden');
+        updateCapturePanelPosition();
         if (capturePanelHideTimeout) {
             window.clearTimeout(capturePanelHideTimeout);
             capturePanelHideTimeout = null;

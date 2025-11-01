@@ -174,25 +174,27 @@ canvas#scene {
 
 .capture-window {
     position: absolute;
-    top: clamp(48px, 10vh, 140px);
-    right: clamp(12px, 6vw, 72px);
-    width: min(320px, 30vw);
-    padding: 16px;
-    background: rgba(255, 250, 244, 0.95);
-    border: 1px solid rgba(195, 106, 90, 0.2);
-    border-radius: 18px;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.14);
+    left: var(--capture-panel-left, 75%);
+    top: var(--capture-panel-top, 50%);
+    transform: translate(-50%, -50%);
+    width: min(560px, 46vw);
+    padding: 24px 24px 18px;
+    background: rgba(255, 250, 244, 0.96);
+    border: 1px solid rgba(195, 106, 90, 0.22);
+    border-radius: 22px;
+    box-shadow: 0 30px 56px rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 18px;
     z-index: 4;
 }
 
 .capture-window .preview {
     position: relative;
-    border-radius: 14px;
+    border-radius: 18px;
     overflow: hidden;
     background: #000;
+    margin-bottom: 10px;
 }
 
 .capture-window video {
@@ -260,15 +262,6 @@ canvas#scene {
     width: 0%;
     background: var(--accent);
     transition: width 160ms ease-out;
-}
-
-.btn.collapse {
-    align-self: flex-end;
-    font-size: 13px;
-    padding: 6px 10px;
-    background: rgba(195, 106, 90, 0.12);
-    color: var(--accent);
-    border-color: transparent;
 }
 
 .hidden {
