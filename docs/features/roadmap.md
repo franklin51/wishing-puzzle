@@ -12,10 +12,26 @@
 - **A10 Bobo Companion Placement**: Position `bobo.png` beside the cake, scale to support portrait proportions, and integrate into hero composition without occluding candles.
 - **A4 Motion Polish** (Discard): Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps, tuned after the visual refresh.
 
-## Epic B · Wishes, Blowout, Capture
-- **B1 Wish Panel** (In progress): Replaces text inputs with a five-second wish hint (請默念三個願望...) that auto-starts mic + camera, updates the HUD, and can also be triggered by triple-tapping the cake once all candles are lit.
-- **B2 Candle Blowout** (In progress): Microphone listening runs throughout the hint, feeds a live level indicator, and proportionally extinguishes candles until the fold glows "蠟燭已熄滅".
-- **B3 Front Camera Capture** (In progress): Front camera preview floats above the cake while listening; the moment all candles fade we grab a frame, tuck the polaroid into the right panel, and keep it ready for export.
+## Epic B · Wishes, Blowout, Capture (Done)
+- **B1 Wish Panel** (Done): Replaces text inputs with a five-second wish hint (請默念三個願望...) that auto-starts mic + camera, updates the HUD, and can also be triggered by triple-tapping the cake once all candles are lit.
+- **B2 Candle Blowout** (Done): Microphone listening runs throughout the hint, feeds a live level indicator, and proportionally extinguishes candles until the fold glows "蠟燭已熄滅".
+- **B3 Front Camera Capture** (Done): Front camera preview floats above the cake while listening; the moment all candles fade we grab a frame, tuck the polaroid into the right panel, and keep it ready for export.
+
+## Pre-C Card Style Enhancements
+- **B4 Bobo Birthday Bubble** (Planned):
+    - Audit existing hero layering to confirm z-index slots for a speech bubble above `bobo.png` without eclipsing candles or HUD callouts.
+    - Produce the bubble asset (SVG or canvas path) sized for the current viewport scaling, with localized "Happy Birthday" copy.
+    - Implement scene placement logic that anchors the bubble to Bobo’s head position, clamps on resize, and fades in during the wish-ready state.
+    - QA on desktop/mobile breakpoints to ensure the bubble reads clearly and doesn’t collide with the camera preview or seam crease.
+- **B5 Cake Asset Refresh** (Planned):
+    - Replace the existing cake texture with `images/New_cake.png`, updating import paths and cache busting where needed.
+    - Recalculate cake scale/position so the base plate sits on the stage while the top aligns with existing candle anchors.
+    - Reflow the candle grid offsets and flame animation bounds to match the new silhouette; adjust shadow/lighting composites if necessary.
+    - Regression pass to confirm card placements, preview window, and captured photo still frame cleanly around the refreshed cake.
+- **B6 Wish Countdown Copy** (Planned):
+    - Update the five-second hint messaging to read “許下你的願望，請偷偷地為自己、為我們、為未來各許一個願望，第三個願望不要念出來。” and ensure the countdown overlay supports the longer string.
+    - Verify mic auto-start, triple-tap trigger, and HUD messaging continue to reference the revised copy across Traditional Chinese and fallback locales.
+    - Re-run manual wish flow to make sure the overlay timing, text wrapping, and accessibility attributes (ARIA/live regions) remain correct.
 
 ## Epic C · Output & Assets
 - **C1 High-Res Export**: Export delivers 1920×1080 PNG and A4 PDF; `exportCanvas` composes all layers correctly.
