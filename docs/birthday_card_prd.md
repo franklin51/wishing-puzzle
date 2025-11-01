@@ -65,7 +65,7 @@ Interaction Rules:
 
 ### 5.3 Wish Stage
 **Trigger:** After 27th card revealed.
-- Five-second wish hint overlay (請默念三個願望…) replaces text inputs and counts down automatically.
+- Five-second wish hint overlay (許下你的願望 — 請偷偷地為自己、為我們、為未來各許一個願望，第三個願望不要念出來。) replaces text inputs and counts down automatically.
 - Microphone and front camera warm up while the hint shows; HUD swaps to 「準備吹蠟燭」.
 - Triple-tap on the cake also triggers the hint in case the footer button is hidden.
 
