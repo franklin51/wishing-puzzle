@@ -23,6 +23,23 @@
         <main class="stage">
             <!-- Canvas layer -->
             <canvas id="scene" width="1280" height="720" aria-label="Interactive birthday card"></canvas>
+            <section id="capturePanel" class="capture-window hidden" aria-live="polite">
+                <div class="preview">
+                    <video id="video" autoplay playsinline muted></video>
+                    <div class="capture-status">
+                        <span class="status-dot"></span>
+                        <span id="captureStatusText">等待吹蠟燭</span>
+                    </div>
+                </div>
+                <div id="listeningIndicator" class="listening-indicator hidden">
+                    <span class="label">正在聆聽願望</span>
+                    <span class="sub">吹氣越大，蠟燭越快熄滅</span>
+                    <div class="level" aria-hidden="true">
+                        <div id="listeningLevelBar" class="level-bar"></div>
+                    </div>
+                </div>
+                <button id="btnCloseCapture" class="btn subtle collapse">隱藏預覽</button>
+            </section>
         </main>
 
         <footer class="bottombar">
@@ -31,34 +48,15 @@
             <button id="btnReset" class="btn subtle">重置</button>
         </footer>
 
-        <!-- Wishes panel (overlays on stage when active) -->
-        <section id="wishesPanel" class="overlay hidden" role="dialog" aria-modal="true">
-            <div class="panel">
-                <h2>許下三個願望</h2>
-                <label>給妳自己
-                    <input id="wish1" type="text" maxlength="60" placeholder="例如：身體健康、開心每一天" />
-                </label>
-                <label>給我們
-                    <input id="wish2" type="text" maxlength="60" placeholder="例如：一起旅行某個地方" />
-                </label>
-                <label>給未來
-                    <input id="wish3" type="text" maxlength="60" placeholder="例如：一直在彼此身邊" />
-                </label>
-                <div class="actions">
-                    <button id="btnWishesOk" class="btn primary">完成願望</button>
+        <!-- Wishes panel (timed hint overlay) -->
+        <section id="wishesPanel" class="overlay hidden" role="dialog" aria-modal="true" aria-live="polite">
+            <div class="panel wish-hint">
+                <h2>默念你的願望</h2>
+                <p class="hint-text">請偷偷地為自己、為我們、為未來各許一個願望。</p>
+                <div class="countdown" aria-hidden="true">
+                    <span id="wishCountdown">5</span>
                 </div>
-            </div>
-        </section>
-
-        <!-- Capture panel (camera preview + capture) -->
-        <section id="capturePanel" class="overlay hidden" role="dialog" aria-modal="true">
-            <div class="panel">
-                <h2>吹蠟燭 & 拍下這一刻</h2>
-                <video id="video" autoplay playsinline></video>
-                <div class="actions">
-                    <button id="btnCapture" class="btn primary">拍照</button>
-                    <button id="btnCloseCapture" class="btn">關閉</button>
-                </div>
+                <button id="btnWishSkip" class="btn subtle skip">準備好了，開始吹蠟燭</button>
             </div>
         </section>
 

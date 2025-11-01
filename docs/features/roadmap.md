@@ -13,9 +13,9 @@
 - **A4 Motion Polish** (Discard): Drag-out scaling, landing easing, and subtle flame jitter all render at a locked 60fps, tuned after the visual refresh.
 
 ## Epic B · Wishes, Blowout, Capture
-- **B1 Wish Panel**: Three-column input with slot using card-paper (should add new one) background. The slots should be on the card panel in the beginning; no need to submit text; The 下一步 should trigger candle blowing.
-- **B2 Candle Blowout**: Microphone threshold extinguishes candles; Some candles are blowout but some remain lighted if not reaching the threshhold. All the candles back to be lighted as a fallback if denied. The number of candles be blowout follow the percentage of how close to the threshhold.
-- **B3 Front Camera Capture**: capture uses front camera while the candles are blowout, and places the frame on the right top of the card panel.
+- **B1 Wish Panel** (In progress): Replaces text inputs with a five-second wish hint (請默念三個願望...) that auto-starts mic + camera, updates the HUD, and can also be triggered by triple-tapping the cake once all candles are lit.
+- **B2 Candle Blowout** (In progress): Microphone listening runs throughout the hint, feeds a live level indicator, and proportionally extinguishes candles until the fold glows "蠟燭已熄滅".
+- **B3 Front Camera Capture** (In progress): Front camera preview floats above the cake while listening; the moment all candles fade we grab a frame, tuck the polaroid into the right panel, and keep it ready for export.
 
 ## Epic C · Output & Assets
 - **C1 High-Res Export**: Export delivers 1920×1080 PNG and A4 PDF; `exportCanvas` composes all layers correctly.

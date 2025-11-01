@@ -34,7 +34,7 @@ flowchart TD
   C -->|Yes| D[Animate card + Light candle]
   D --> E{All 27 cards revealed?}
   E -->|No| B
-  E -->|Yes| F[Wish Stage - Input/Voice Recognition]
+  E -->|Yes| F[Wish Stage - Hint & Mic Warm-up]
   F --> G[Blow Candle Stage - Microphone Detection]
   G --> H[Photo Capture - Front Camera]
   H --> I[Export Card to JPG/PDF]
@@ -65,22 +65,21 @@ Interaction Rules:
 
 ### 5.3 Wish Stage
 **Trigger:** After 27th card revealed.
-- Three input fields: “Wish for yourself”, “Wish for us”, “Wish for the future”.
-- Option for speech-to-text input.
-- Wishes appear as stylized text labels around the cake.
+- Five-second wish hint overlay (請默念三個願望…) replaces text inputs and counts down automatically.
+- Microphone and front camera warm up while the hint shows; HUD swaps to 「準備吹蠟燭」.
+- Triple-tap on the cake also triggers the hint in case the footer button is hidden.
 
 ### 5.4 Blow Candle Stage
-**Trigger:** Clicking "Make a wish" button.
-- Uses microphone volume detection to simulate blowing.
-- Fire flicker + extinguish animation.
-- Fallback: Manual 'Blow' button.
+**Trigger:** Hint auto-completes (or user skips early).
+- Live microphone levels drive candle extinguish progress; indicator sits beside the camera preview.
+- Candles fade proportionally to how hard the user blows and lock once 「蠟燭已熄滅！」 appears.
+- Fallback: Skip button forces the stage to advance if mic permission fails.
 
 ### 5.5 Photo Capture Stage
 **Trigger:** All candles extinguished.
-- Front camera activation (getUserMedia).
-- Countdown overlay (3, 2, 1).
-- Captured photo auto-placed on left half of card.
-- Subtle vignette + timestamp: “2025.11.xx – Your Wish Day”.
+- Front camera preview floats above the cake while blowing; user can temporarily hide it.
+- Auto snapshot fires the instant the candles finish; stream stops and the panel fades away.
+- Captured photo drops in as a polaroid on the right panel (above the cake) and persists for export.
 
 ### 5.6 Export Stage
 **Trigger:** Capture complete.
@@ -96,9 +95,9 @@ Interaction Rules:
 |---------|--------------|--------------------|
 | **CardStack** | Controls 27-card stack interactions | Canvas events + drag logic |
 | **CandleSystem** | Manages 27 candle states + animations | drawFlame(), extinguish() via p5.js |
-| **WishPanel** | Handles text/voice input for wishes | Web Speech API + DOM overlay |
-| **BlowDetector** | Detects microphone input volume | Web Audio API |
-| **PhotoCapture** | Captures image via webcam | getUserMedia, canvas drawImage() |
+| **WishPanel** | Timed hint overlay + countdown trigger for mic/cam warm-up | DOM overlay, timers, state store hooks |
+| **BlowDetector** | Smooths mic amplitude and maps it to candle extinction + indicator | Web Audio API analyser, RMS smoothing |
+| **PhotoCapture** | Inline front-camera preview and auto snapshot for the right-panel polaroid | getUserMedia (facingMode user), offscreen capture |
 | **Exporter** | Combines and saves final card | html2canvas, jsPDF |
 | **SoundManager** | Controls music & SFX | Web Audio Context |
 | **StateManager** | Tracks game state flow | JS State machine pattern |
@@ -152,4 +151,3 @@ Total: **5 weeks** (MVP to completion)
 - Smooth performance (no dropped frames).
 - Successful JPG/PDF generation rate >95%.
 - Recipient emotional response (qualitative feedback measure).
-

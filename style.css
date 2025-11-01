@@ -52,6 +52,7 @@ body {
     display: grid;
     place-items: center;
     padding: 8px 0;
+    position: relative;
 }
 
 canvas#scene {
@@ -136,10 +137,138 @@ canvas#scene {
     justify-content: flex-end;
 }
 
-video {
-    width: 100%;
-    border-radius: 12px;
+.panel.wish-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+}
+
+.wish-hint .hint-text {
+    margin: 0;
+    color: var(--muted);
+    max-width: 28ch;
+    line-height: 1.6;
+}
+
+.wish-hint .countdown {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    background: rgba(195, 106, 90, 0.12);
+    color: var(--accent);
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.wish-hint .btn.skip {
+    margin-top: 4px;
+    color: var(--accent);
+    border-color: transparent;
+    background: rgba(195, 106, 90, 0.12);
+}
+
+.capture-window {
+    position: absolute;
+    top: clamp(48px, 10vh, 140px);
+    right: clamp(12px, 6vw, 72px);
+    width: min(320px, 30vw);
+    padding: 16px;
+    background: rgba(255, 250, 244, 0.95);
+    border: 1px solid rgba(195, 106, 90, 0.2);
+    border-radius: 18px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 4;
+}
+
+.capture-window .preview {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
     background: #000;
+}
+
+.capture-window video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+.capture-window .capture-status {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+}
+
+.capture-window .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: #ff8a65;
+    box-shadow: 0 0 6px rgba(255, 138, 101, 0.85);
+}
+
+.listening-indicator {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px dashed rgba(195, 106, 90, 0.35);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.listening-indicator .label {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 13px;
+}
+
+.listening-indicator .sub {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.listening-indicator .level {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(195, 106, 90, 0.16);
+    overflow: hidden;
+}
+
+.listening-indicator .level-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 160ms ease-out;
+}
+
+.btn.collapse {
+    align-self: flex-end;
+    font-size: 13px;
+    padding: 6px 10px;
+    background: rgba(195, 106, 90, 0.12);
+    color: var(--accent);
+    border-color: transparent;
 }
 
 .hidden {

@@ -136,6 +136,17 @@ export function createStore(options = {}) {
     return state.progressText;
   }
 
+  function setCandlesLit(nextCount) {
+    const normalized = clampCandles(Math.round(nextCount), state.totalCards);
+    if (normalized === state.candlesLit) {
+      return state.candlesLit;
+    }
+    updateState(() => ({
+      candlesLit: normalized,
+    }));
+    return state.candlesLit;
+  }
+
   return {
     initializeDeck,
     dragCard,
@@ -145,6 +156,7 @@ export function createStore(options = {}) {
     subscribe,
     getTopUnplacedCard,
     getProgressText,
+    setCandlesLit,
   };
 }
 
@@ -210,4 +222,10 @@ function isStateEqual(previous, next) {
     }
   }
   return true;
+}
+
+function clampCandles(value, maxCandles) {
+  if (!Number.isFinite(value)) return 0;
+  const upperBound = Number.isFinite(maxCandles) && maxCandles > 0 ? Math.floor(maxCandles) : DEFAULT_TOTAL_CARDS;
+  return Math.max(0, Math.min(value, upperBound));
 }

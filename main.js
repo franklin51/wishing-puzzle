@@ -5,6 +5,7 @@
 
 import { createStore } from './scripts/state/store.mjs';
 import { initCardInteractions } from './scripts/interactions/cards.js';
+import { createBlowDetector } from './scripts/interactions/blowDetector.js';
 
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
@@ -15,13 +16,13 @@ const progressText = document.getElementById('progressText');
 const btnStart = document.getElementById('btnStart');
 const btnNext = document.getElementById('btnNext');
 const btnReset = document.getElementById('btnReset');
-const btnWishesOk = document.getElementById('btnWishesOk');
-const wish1 = document.getElementById('wish1');
-const wish2 = document.getElementById('wish2');
-const wish3 = document.getElementById('wish3');
-const btnCapture = document.getElementById('btnCapture');
+const wishCountdown = document.getElementById('wishCountdown');
+const btnWishSkip = document.getElementById('btnWishSkip');
 const btnCloseCapture = document.getElementById('btnCloseCapture');
 const video = document.getElementById('video');
+const captureStatusText = document.getElementById('captureStatusText');
+const listeningIndicator = document.getElementById('listeningIndicator');
+const listeningLevelBar = document.getElementById('listeningLevelBar');
 
 // ---- State ----
 const STATE = { INTRO: 'intro', ARRANGE: 'arrange', WISHES: 'wishes', BLOW: 'blow', CAPTURE: 'capture', EXPORT: 'export' };
@@ -57,12 +58,39 @@ const BOBO = {
     gapRatio: 0.036,
     baselineOffsetRatio: 0,
 };
+const WISH_HINT_DURATION_MS = 5000;
+const CAKE_TAP_THRESHOLD = 3;
+const CAKE_TAP_WINDOW_MS = 1500;
+const BLOW_BASELINE_SAMPLE_LIMIT = 60;
+const BLOW_NOISE_BUFFER = 0.015;
+const BLOW_TARGET_DELTA = 0.18;
+const BLOW_PROGRESS_COMPLETE = 0.98;
+const BLOW_AUTOFINISH_DELAY_MS = 900;
 const store = createStore();
+const blowDetector = createBlowDetector();
 let cards = [];
 let cakeLayout = null;
 let dataReady = false;
 let unsubscribeStore = null;
 let cardInteractions = null;
+let progressOverride = null;
+let wishHintActive = false;
+let wishCountdownInterval = null;
+let wishHintTimeout = null;
+let cakeTapCount = 0;
+let cakeTapResetTimeout = null;
+let blowStartPromise = null;
+let blowStartToken = null;
+let blowListening = false;
+let blowStageActive = false;
+let blowBaseline = 0;
+let blowBaselineSamples = 0;
+let blowProgress = 0;
+let blowDetectionFailed = false;
+let cameraStream = null;
+let cameraActive = false;
+let capturedPhoto = null;
+let capturePanelHideTimeout = null;
 
 // Positions are computed relative to scene rects
 let scene = {
@@ -163,8 +191,22 @@ function syncCardsFromStore() {
 
 function setProgress() {
     const { candlesLit, totalCards } = store.getState();
-    progressText.textContent = `Candles: ${candlesLit} / ${totalCards}`;
+    if (progressOverride) {
+        progressText.textContent = progressOverride;
+    } else {
+        progressText.textContent = `Candles: ${candlesLit} / ${totalCards}`;
+    }
     btnNext.disabled = !(candlesLit === totalCards && state === STATE.ARRANGE);
+}
+
+function setProgressMessage(message) {
+    progressOverride = message;
+    progressText.textContent = message;
+}
+
+function clearProgressMessage() {
+    progressOverride = null;
+    setProgress();
 }
 
 function layout() {
@@ -283,6 +325,7 @@ function drawScene() {
     // right panel — cake + candles
     drawCake();
     drawBobo();
+    drawCapturedPhoto();
 
     // stack shadow area
     // stack shadow hint (subtle shadow only, no fill)
@@ -392,6 +435,62 @@ function drawBobo() {
     ctx.drawImage(boboImage, boboX, boboY, width, height);
 }
 
+function drawCapturedPhoto() {
+    if (!capturedPhoto || !capturedPhoto.image || !scene.right) return;
+    const photo = capturedPhoto.image;
+    const panel = scene.right;
+    const aspect = photo.width && photo.height ? photo.width / photo.height : 4 / 3;
+    const maxPhotoWidth = Math.min(panel.w * 0.82, 260);
+    let photoWidth = maxPhotoWidth;
+    let photoHeight = photoWidth / aspect;
+    const maxPhotoHeight = Math.min(panel.h * 0.62, 220);
+    if (photoHeight > maxPhotoHeight) {
+        photoHeight = maxPhotoHeight;
+        photoWidth = photoHeight * aspect;
+    }
+    const paddingSide = 14;
+    const paddingTop = 14;
+    const paddingBottom = 30;
+    const frameWidth = photoWidth + paddingSide * 2;
+    const frameHeight = photoHeight + paddingTop + paddingBottom;
+    let frameX = panel.x + (panel.w - frameWidth) / 2;
+    let frameY = panel.y - frameHeight - 18;
+    const minFrameY = scene.hero.y + 24;
+    if (frameY < minFrameY) {
+        frameY = minFrameY;
+    }
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    drawRoundedRect(frameX, frameY, frameWidth, frameHeight, 16);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(195, 106, 90, 0.18)';
+    ctx.lineWidth = 1;
+    drawRoundedRect(frameX, frameY, frameWidth, frameHeight, 16);
+    ctx.stroke();
+    ctx.restore();
+
+    const photoX = frameX + paddingSide;
+    const photoY = frameY + paddingTop;
+    ctx.save();
+    drawRoundedRect(photoX, photoY, photoWidth, photoHeight, 12);
+    ctx.clip();
+    ctx.drawImage(photo, photoX, photoY, photoWidth, photoHeight);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(63, 53, 44, 0.6)';
+    ctx.font = '600 14px "Noto Sans TC", "PingFang TC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('這一刻被收藏', frameX + frameWidth / 2, frameY + frameHeight - 12);
+    ctx.textAlign = 'left';
+}
+
 function drawCard(card, inStack = false) {
     const x = inStack ? card.x : card.x;
     const y = inStack ? card.y : card.y;
@@ -455,47 +554,336 @@ btnStart.addEventListener('click', () => {
     if (state === STATE.INTRO) { state = STATE.ARRANGE; btnStart.disabled = true; }
 });
 
-btnNext.addEventListener('click', () => {
-    if (state !== STATE.ARRANGE) return;
-    const { candlesLit, totalCards } = store.getState();
-    if (candlesLit === totalCards) {
-        state = STATE.WISHES;
-        wishesPanel.classList.remove('hidden');
-    }
-});
+btnNext.addEventListener('click', () => enterWishStage());
 
 btnReset.addEventListener('click', () => resetAll());
 
-btnWishesOk.addEventListener('click', () => {
-    // TODO: render wishes to scene (stickers)
-    wishesPanel.classList.add('hidden');
+if (btnWishSkip) {
+    btnWishSkip.addEventListener('click', () => {
+        completeWishHint(true);
+    });
+}
+
+function enterWishStage() {
+    if (state !== STATE.ARRANGE) return;
+    const { candlesLit, totalCards } = store.getState();
+    if (candlesLit !== totalCards) return;
+    state = STATE.WISHES;
+    btnNext.disabled = true;
+    cakeTapCount = 0;
+    clearCakeTapTimer();
+    blowStageActive = false;
+    blowProgress = 0;
+    showWishHintOverlay();
+}
+
+function showWishHintOverlay() {
+    if (wishHintActive) return;
+    wishHintActive = true;
+    resetWishCountdownDisplay();
+    setProgressMessage('準備吹蠟燭');
+    wishesPanel.classList.remove('hidden');
+    startWishHintCountdown(WISH_HINT_DURATION_MS);
+    startBlowDetection();
+    startCameraPreview();
+}
+
+function startWishHintCountdown(durationMs) {
+    stopWishHintTimers();
+    let remainingSeconds = Math.ceil(durationMs / 1000);
+    updateWishCountdownDisplay(remainingSeconds);
+    wishHintTimeout = window.setTimeout(() => {
+        completeWishHint(false);
+    }, durationMs);
+    wishCountdownInterval = window.setInterval(() => {
+        remainingSeconds -= 1;
+        if (remainingSeconds <= 0) {
+            updateWishCountdownDisplay(0);
+            completeWishHint(false);
+            return;
+        }
+        updateWishCountdownDisplay(remainingSeconds);
+    }, 1000);
+}
+
+function stopWishHintTimers() {
+    if (wishHintTimeout) {
+        window.clearTimeout(wishHintTimeout);
+        wishHintTimeout = null;
+    }
+    if (wishCountdownInterval) {
+        window.clearInterval(wishCountdownInterval);
+        wishCountdownInterval = null;
+    }
+}
+
+function updateWishCountdownDisplay(value) {
+    if (!wishCountdown) return;
+    wishCountdown.textContent = String(value);
+}
+
+function resetWishCountdownDisplay() {
+    updateWishCountdownDisplay(Math.ceil(WISH_HINT_DURATION_MS / 1000));
+}
+
+function completeWishHint(manual = false) {
+    if (!wishHintActive) return;
+    stopWishHintTimers();
+    hideWishHintOverlay();
+    enterBlowStage(manual);
+}
+
+function hideWishHintOverlay() {
+    wishHintActive = false;
+    if (wishesPanel) {
+        wishesPanel.classList.add('hidden');
+    }
+    resetWishCountdownDisplay();
+}
+
+async function enterBlowStage(manualTrigger = false) {
     state = STATE.BLOW;
-    // TODO: start mic detection here
-    // For now, go straight to capture
+    if (manualTrigger) {
+        stopBlowDetection();
+        stopCameraPreview(true);
+        setCaptureStatus('預覽已關閉');
+        clearProgressMessage();
+        transitionToCaptureStage();
+        return;
+    }
+    blowProgress = 0;
+    blowStageActive = false;
+    setProgressMessage('吹蠟燭中...');
+    try {
+        const started = await startBlowDetection();
+        if (!started) {
+            blowDetectionFailed = true;
+            setProgressMessage('麥克風不可用，幫你跳過吹蠟燭');
+            stopCameraPreview(true);
+            window.setTimeout(() => {
+                clearProgressMessage();
+                transitionToCaptureStage();
+            }, 1000);
+            return;
+        }
+        const cameraReady = await startCameraPreview();
+        if (!cameraReady) {
+            setCaptureStatus('相機不可用');
+        } else {
+            setCaptureStatus('吹蠟燭時會自動拍攝');
+        }
+        blowStageActive = true;
+    } catch (error) {
+        blowDetectionFailed = true;
+        console.error('Unable to enter blow stage', error);
+        setProgressMessage('麥克風不可用，幫你跳過吹蠟燭');
+        stopCameraPreview(true);
+        window.setTimeout(() => {
+            clearProgressMessage();
+            transitionToCaptureStage();
+        }, 1000);
+    }
+}
+
+function transitionToCaptureStage() {
+    stopBlowDetection();
     state = STATE.CAPTURE;
-    openCamera();
-});
+    clearProgressMessage();
+}
 
-btnCloseCapture.addEventListener('click', () => {
-    capturePanel.classList.add('hidden');
-});
+function startBlowDetection() {
+    if (blowListening) {
+        showListeningIndicator();
+        return Promise.resolve(true);
+    }
+    if (blowStartPromise) {
+        return blowStartPromise;
+    }
+    blowBaseline = 0;
+    blowBaselineSamples = 0;
+    blowProgress = 0;
+    blowDetectionFailed = false;
+    const token = {};
+    blowStartToken = token;
+    blowStartPromise = blowDetector
+        .start(handleAudioLevel)
+        .then(() => {
+            if (blowStartToken !== token) {
+                return false;
+            }
+            blowListening = true;
+            showListeningIndicator();
+            return true;
+        })
+        .catch((error) => {
+            console.error('Microphone start failed', error);
+            if (blowStartToken === token) {
+                blowDetectionFailed = true;
+            }
+            hideListeningIndicator();
+            return false;
+        })
+        .finally(() => {
+            if (blowStartToken === token) {
+                blowStartToken = null;
+            }
+            blowStartPromise = null;
+        });
+    return blowStartPromise;
+}
 
-btnCapture.addEventListener('click', async () => {
-    // Grab a frame and place to left panel area as a polaroid
-    const frame = await captureFrameFromVideo(video);
-    // Draw onto the main canvas immediately (simple version)
-    const pad = 24;
-    const w = scene.left.w - pad * 2;
-    const h = (w * 3) / 4;
-    ctx.drawImage(frame, scene.left.x + pad, scene.left.y + pad + 60, w, h);
+function stopBlowDetection() {
+    blowStageActive = false;
+    blowProgress = 0;
+    blowBaseline = 0;
+    blowBaselineSamples = 0;
+    if (blowStartPromise) {
+        blowStartToken = null;
+    }
+    if (blowListening || blowStartPromise) {
+        try {
+            blowDetector.stop();
+        } catch (error) {
+            console.warn('Failed to stop microphone stream', error);
+        }
+    }
+    blowListening = false;
+    blowStartPromise = null;
+    hideListeningIndicator();
+}
 
-    // TODO: store photo data for export composition
-    state = STATE.EXPORT;
-    await exportImage();
-});
+function handleAudioLevel(level) {
+    let indicatorLevel = Math.min(1, level * 1.4);
+    if (!blowStageActive) {
+        if (blowBaselineSamples < BLOW_BASELINE_SAMPLE_LIMIT) {
+            blowBaseline = blowBaselineSamples === 0 ? level : blowBaseline * 0.85 + level * 0.15;
+            blowBaselineSamples += 1;
+        }
+        updateListeningIndicatorLevel(indicatorLevel);
+        return;
+    }
+    const baseline = blowBaselineSamples > 0 ? blowBaseline : 0.02;
+    const floor = baseline + BLOW_NOISE_BUFFER;
+    const delta = Math.max(0, level - floor);
+    const normalized = Math.max(0, Math.min(1, delta / Math.max(BLOW_TARGET_DELTA, 0.0001)));
+    indicatorLevel = Math.max(indicatorLevel, normalized);
+    updateListeningIndicatorLevel(indicatorLevel);
+    if (normalized > blowProgress + 0.002) {
+        blowProgress = normalized;
+        updateCandlesForProgress(blowProgress);
+    }
+}
+
+function updateCandlesForProgress(progressValue) {
+    const snapshot = store.getState();
+    const total = snapshot.totalCards;
+    const target = Math.max(0, Math.round(total * (1 - progressValue)));
+    if (target < snapshot.candlesLit) {
+        store.setCandlesLit(target);
+    }
+    if (target <= 0 || progressValue >= BLOW_PROGRESS_COMPLETE) {
+        finishBlowStage();
+    }
+}
+
+function finishBlowStage() {
+    if (!blowStageActive) return;
+    blowStageActive = false;
+    setProgressMessage('蠟燭已熄滅！');
+    setCaptureStatus('捕捉中...');
+    autoCapturePhoto();
+    stopBlowDetection();
+    window.setTimeout(() => {
+        clearProgressMessage();
+        transitionToCaptureStage();
+    }, BLOW_AUTOFINISH_DELAY_MS);
+}
+
+function showListeningIndicator() {
+    if (!listeningIndicator) return;
+    listeningIndicator.classList.remove('hidden');
+}
+
+function hideListeningIndicator() {
+    if (listeningIndicator) {
+        listeningIndicator.classList.add('hidden');
+    }
+    updateListeningIndicatorLevel(0);
+}
+
+function updateListeningIndicatorLevel(value) {
+    if (!listeningLevelBar) return;
+    const clamped = Math.max(0, Math.min(1, value));
+    listeningLevelBar.style.width = `${Math.round(clamped * 100)}%`;
+}
+
+function handleCanvasPointerTap(event) {
+    if (state !== STATE.ARRANGE) return;
+    if (!cakeLayout) return;
+    const pointer = getCanvasPointer(event);
+    if (!isPointerInCakeArea(pointer)) return;
+    cakeTapCount += 1;
+    resetCakeTapTimer();
+    if (cakeTapCount >= CAKE_TAP_THRESHOLD) {
+        cakeTapCount = 0;
+        clearCakeTapTimer();
+        enterWishStage();
+    }
+}
+
+function getCanvasPointer(event) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (event.clientX - rect.left) * (canvas.width / rect.width),
+        y: (event.clientY - rect.top) * (canvas.height / rect.height),
+    };
+}
+
+function isPointerInCakeArea(pointer) {
+    const { x, y, w, h } = cakeLayout;
+    return pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h;
+}
+
+function resetCakeTapTimer() {
+    clearCakeTapTimer();
+    cakeTapResetTimeout = window.setTimeout(() => {
+        cakeTapCount = 0;
+        cakeTapResetTimeout = null;
+    }, CAKE_TAP_WINDOW_MS);
+}
+
+function clearCakeTapTimer() {
+    if (!cakeTapResetTimeout) return;
+    window.clearTimeout(cakeTapResetTimeout);
+    cakeTapResetTimeout = null;
+}
+
+canvas.addEventListener('pointerdown', handleCanvasPointerTap);
+
+if (btnCloseCapture) {
+    btnCloseCapture.addEventListener('click', () => {
+        setCaptureStatus('預覽已隱藏');
+        if (capturePanelHideTimeout) {
+            window.clearTimeout(capturePanelHideTimeout);
+            capturePanelHideTimeout = null;
+        }
+        if (capturePanel) {
+            capturePanel.classList.add('hidden');
+        }
+    });
+}
 
 function resetAll() {
     state = STATE.INTRO;
+    stopWishHintTimers();
+    hideWishHintOverlay();
+    clearProgressMessage();
+    cakeTapCount = 0;
+    clearCakeTapTimer();
+    stopBlowDetection();
+    blowDetectionFailed = false;
+    stopCameraPreview(true);
+    capturedPhoto = null;
     store.resetSession();
     cards.forEach((c, i) => {
         positionCardAtStack(c, i);
@@ -509,20 +897,123 @@ function resetAll() {
 }
 
 // ---- Camera helpers ----
-async function openCamera() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        video.srcObject = stream;
+async function startCameraPreview() {
+    if (!capturePanel || !video) return false;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCaptureStatus('相機不可用');
+        return false;
+    }
+    if (cameraActive) {
         capturePanel.classList.remove('hidden');
-    } catch (err) {
-        alert('無法存取相機：' + err.message);
+        if (capturePanelHideTimeout) {
+            window.clearTimeout(capturePanelHideTimeout);
+            capturePanelHideTimeout = null;
+        }
+        return true;
+    }
+    try {
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+            },
+            audio: false,
+        };
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = cameraStream;
+        video.muted = true;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            await playPromise.catch(() => {});
+        }
+        cameraActive = true;
+        capturePanel.classList.remove('hidden');
+        if (capturePanelHideTimeout) {
+            window.clearTimeout(capturePanelHideTimeout);
+            capturePanelHideTimeout = null;
+        }
+        setCaptureStatus('等待吹蠟燭');
+        return true;
+    } catch (error) {
+        console.error('Unable to access camera', error);
+        setCaptureStatus('相機不可用');
+        cameraActive = false;
+        if (cameraStream) {
+            cameraStream.getTracks().forEach((track) => track.stop());
+            cameraStream = null;
+        }
+        if (capturePanel) {
+            capturePanel.classList.add('hidden');
+        }
+        return false;
+    }
+}
+
+function stopCameraPreview(forceHide = false) {
+    if (capturePanelHideTimeout) {
+        window.clearTimeout(capturePanelHideTimeout);
+        capturePanelHideTimeout = null;
+    }
+    if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
+    }
+    if (video && video.srcObject) {
+        video.srcObject = null;
+    }
+    cameraActive = false;
+    if (forceHide && capturePanel) {
+        capturePanel.classList.add('hidden');
+    }
+}
+
+function scheduleCapturePanelHide(delay = 1400) {
+    if (!capturePanel) return;
+    if (capturePanelHideTimeout) {
+        window.clearTimeout(capturePanelHideTimeout);
+    }
+    capturePanelHideTimeout = window.setTimeout(() => {
+        capturePanel.classList.add('hidden');
+        capturePanelHideTimeout = null;
+    }, delay);
+}
+
+function setCaptureStatus(message) {
+    if (captureStatusText) {
+        captureStatusText.textContent = message;
+    }
+}
+
+async function autoCapturePhoto() {
+    if (!video) return;
+    try {
+        const frame = await captureFrameFromVideo(video);
+        if (frame) {
+            capturedPhoto = { image: frame };
+            setCaptureStatus('已捕捉這一刻');
+            drawScene();
+        } else {
+            capturedPhoto = null;
+            setCaptureStatus('未能捕捉影像');
+        }
+    } catch (error) {
+        console.warn('Failed to capture photo', error);
+        capturedPhoto = null;
+        setCaptureStatus('未能捕捉影像');
+    } finally {
+        stopCameraPreview();
+        scheduleCapturePanelHide();
     }
 }
 
 async function captureFrameFromVideo(videoEl) {
+    if (!videoEl || videoEl.readyState < 2 || !videoEl.videoWidth || !videoEl.videoHeight) {
+        return null;
+    }
     const off = document.createElement('canvas');
-    off.width = videoEl.videoWidth || 640;
-    off.height = videoEl.videoHeight || 480;
+    off.width = videoEl.videoWidth;
+    off.height = videoEl.videoHeight;
     const ictx = off.getContext('2d');
     ictx.drawImage(videoEl, 0, 0, off.width, off.height);
     const img = new Image();
