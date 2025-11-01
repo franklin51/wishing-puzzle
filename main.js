@@ -23,6 +23,17 @@ const captureStatusText = document.getElementById('captureStatusText');
 const listeningIndicator = document.getElementById('listeningIndicator');
 const listeningLevelBar = document.getElementById('listeningLevelBar');
 
+if (document.fonts && document.fonts.ready) {
+    document.fonts
+        .load('600 30px "Dancing Script"')
+        .catch(() => {})
+        .finally(() => {
+            document.fonts.ready.then(() => {
+                drawScene();
+            });
+        });
+}
+
 // ---- State ----
 const STATE = { INTRO: 'intro', ARRANGE: 'arrange', WISHES: 'wishes', BLOW: 'blow', CAPTURE: 'capture', EXPORT: 'export' };
 let state = STATE.INTRO;
@@ -32,12 +43,12 @@ const CARD_WIDTH = 176;
 const CARD_HEIGHT = 56;
 const DEG2RAD = Math.PI / 180;
 const CAKE_RIM = {
-    centerYOffset: 0.4, // proportion of cake height where the ellipse center sits
-    radiusXRatio: 0.35,
-    radiusYRatio: 0.25,
-    angleStartDeg: 20,
-    angleEndDeg: 350,
-    perspectiveDropRatio: 0.05,
+    centerYOffset: 0.32, // proportion of cake height where the ellipse center sits
+    radiusXRatio: 0.32,
+    radiusYRatio: 0.22,
+    angleStartDeg: 16,
+    angleEndDeg: 344,
+    perspectiveDropRatio: 0.08,
 };
 const LAYOUT = {
     margin: 24,
@@ -57,6 +68,18 @@ const BOBO = {
     gapRatio: 0.036,
     baselineOffsetRatio: 0,
 };
+const BOBO_BUBBLE = {
+    message: 'Happy Birthday',
+    widthRatio: 0.82,
+    maxWidthRatio: 0.32,
+    minWidth: 168,
+    heightRatio: 0.54,
+    gapRatio: 0.08,
+    minGap: 18,
+    pointerWidthRatio: 0.22,
+    pointerHeight: 28,
+    anchorOffsetRatio: 0.58,
+};
 const WISH_HINT_DURATION_MS = 5000;
 const CAKE_TAP_THRESHOLD = 3;
 const CAKE_TAP_WINDOW_MS = 1500;
@@ -69,6 +92,7 @@ const store = createStore();
 const blowDetector = createBlowDetector();
 let cards = [];
 let cakeLayout = null;
+let boboLayout = null;
 let dataReady = false;
 let unsubscribeStore = null;
 let cardInteractions = null;
@@ -153,7 +177,7 @@ cardTexture.onerror = (err) => {
 
 const cakeImage = new Image();
 let cakeImageLoaded = false;
-cakeImage.src = 'images/cake.png';
+cakeImage.src = 'images/New_cake.png';
 cakeImage.onload = () => {
     cakeImageLoaded = true;
     drawScene();
@@ -342,6 +366,7 @@ function drawScene() {
     // right panel — cake + candles
     drawCake();
     drawBobo();
+    drawBoboBubble();
     drawCapturedPhoto();
 
     // stack shadow area
@@ -371,7 +396,11 @@ function drawCake() {
     const { x, y, w, h } = scene.right;
     const centerX = x + w / 2;
     cakeLayout = null;
-    let cakeWidth = w * 0.9;
+    let cakeWidth = w * 0.94;
+    const hero = scene.hero;
+    if (hero) {
+        cakeWidth = Math.min(cakeWidth, hero.w * 0.42);
+    }
     let cakeHeight = cakeWidth * (cakeImage.height / cakeImage.width);
     // if (cakeHeight > h) {
     //     const scale = h / cakeHeight;
@@ -429,6 +458,7 @@ function drawCake() {
 }
 
 function drawBobo() {
+    boboLayout = null;
     if (!boboImageLoaded || !cakeLayout) return;
     const { x, y, w, h } = scene.right;
     const aspect = boboImage.width && boboImage.height ? boboImage.width / boboImage.height : 420 / 560;
@@ -450,6 +480,69 @@ function drawBobo() {
     const boboY = baseline - height + baselineOffset;
 
     ctx.drawImage(boboImage, boboX, boboY, width, height);
+    boboLayout = { x: boboX, y: boboY, w: width, h: height };
+}
+
+function drawBoboBubble() {
+    if (!boboLayout || !scene.hero) return;
+    const hero = scene.hero;
+    const baseWidth = boboLayout.w * BOBO_BUBBLE.widthRatio;
+    let bubbleWidth = Math.min(hero.w * BOBO_BUBBLE.maxWidthRatio, Math.max(BOBO_BUBBLE.minWidth, baseWidth));
+    const bubbleHeight = bubbleWidth * BOBO_BUBBLE.heightRatio;
+    const gap = Math.max(BOBO_BUBBLE.minGap, boboLayout.h * BOBO_BUBBLE.gapRatio);
+    const padding = 24;
+    let bubbleX = boboLayout.x + boboLayout.w / 2 - bubbleWidth / 2;
+    bubbleX = Math.max(hero.x + padding, Math.min(hero.x + hero.w - bubbleWidth - padding, bubbleX));
+    let bubbleY = boboLayout.y - gap - bubbleHeight;
+    const minY = hero.y + padding;
+    if (bubbleY < minY) bubbleY = minY;
+    const bubbleRadius = 20;
+    const bubbleBottom = bubbleY + bubbleHeight;
+    const bubbleRight = bubbleX + bubbleWidth;
+    const pointerWidth = Math.max(30, bubbleWidth * BOBO_BUBBLE.pointerWidthRatio);
+    const pointerHalf = pointerWidth / 2;
+    const pointerHeight = Math.max(BOBO_BUBBLE.pointerHeight, bubbleHeight * 0.22);
+    const anchorTargetX = boboLayout.x + boboLayout.w * BOBO_BUBBLE.anchorOffsetRatio;
+    const pointerBaseX = Math.max(
+        bubbleX + bubbleRadius + pointerHalf,
+        Math.min(bubbleRight - bubbleRadius - pointerHalf, anchorTargetX)
+    );
+    const pointerTipX = anchorTargetX;
+    const targetTipY = boboLayout.y + Math.min(boboLayout.h * 0.2, 78);
+    const minTipY = bubbleBottom + pointerHeight * 0.35;
+    const maxTipY = bubbleBottom + pointerHeight;
+    const pointerTipY = Math.max(minTipY, Math.min(maxTipY, targetTipY));
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(bubbleX + bubbleRadius, bubbleY);
+    ctx.lineTo(bubbleRight - bubbleRadius, bubbleY);
+    ctx.quadraticCurveTo(bubbleRight, bubbleY, bubbleRight, bubbleY + bubbleRadius);
+    ctx.lineTo(bubbleRight, bubbleBottom - bubbleRadius);
+    ctx.quadraticCurveTo(bubbleRight, bubbleBottom, bubbleRight - bubbleRadius, bubbleBottom);
+    ctx.lineTo(pointerBaseX + pointerHalf, bubbleBottom);
+    ctx.lineTo(pointerTipX, pointerTipY);
+    ctx.lineTo(pointerBaseX - pointerHalf, bubbleBottom);
+    ctx.lineTo(bubbleX + bubbleRadius, bubbleBottom);
+    ctx.quadraticCurveTo(bubbleX, bubbleBottom, bubbleX, bubbleBottom - bubbleRadius);
+    ctx.lineTo(bubbleX, bubbleY + bubbleRadius);
+    ctx.quadraticCurveTo(bubbleX, bubbleY, bubbleX + bubbleRadius, bubbleY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(210, 188, 168, 0.65)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#5a483a';
+    ctx.font = '600 30px "Dancing Script", "Noto Sans TC", cursive';
+    ctx.fillText(BOBO_BUBBLE.message, bubbleX + bubbleWidth / 2, bubbleY + bubbleHeight / 2);
+    ctx.restore();
 }
 
 function drawCapturedPhoto() {
